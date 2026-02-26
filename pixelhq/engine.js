@@ -255,12 +255,12 @@ const TOOL_EVENT_MAP = {
 
 // Map tool → office destination tile key
 export const TOOL_DESTINATION = {
-  "tool_bash":  "terminal",
-  "tool_read":  "filing",
-  "tool_write": "desk",
-  "tool_edit":  "desk",
-  "tool_task":  "center",
-  "thinking":   "desk",
+  "tool_bash":  "terminalStation",
+  "tool_read":  "filingCabinet",
+  "tool_write": "workspaceCenter",
+  "tool_edit":  "workspaceCenter",
+  "tool_task":  "hallwayCenter",
+  "thinking":   "workspaceCenter",
 };
 
 export class TerminalBridge {
@@ -272,6 +272,7 @@ export class TerminalBridge {
     this.reconnectDelay = 1000;
     this.connected = false;
     this.mockMode  = false;   // fall back to demo events when no bridge
+    this.mockTimerId = null;
   }
 
   connect() {
@@ -317,6 +318,7 @@ export class TerminalBridge {
 
   // Demo events when no bridge.js is running
   _startMockEvents() {
+    if (this.mockTimerId !== null) return;
     const DEMO_EVENTS = [
       { type: "tool_use", agentId: "boss", toolName: "Task", content: "Analyze authentication module for security issues", role: "boss" },
       { type: "tool_use", agentId: "emp1", toolName: "Bash", content: "git log --oneline -20 && git diff main", role: "employee" },
@@ -332,24 +334,31 @@ export class TerminalBridge {
 
     let i = 0;
     const next = () => {
+      if (this.mockTimerId === null) return;
       this._handleRaw(DEMO_EVENTS[i % DEMO_EVENTS.length]);
       i++;
-      setTimeout(next, 2500 + Math.random() * 2000);
+      this.mockTimerId = setTimeout(next, 2500 + Math.random() * 2000);
     };
-    setTimeout(next, 1000);
+    this.mockTimerId = setTimeout(next, 1000);
 
     // Trigger meetings occasionally
     setTimeout(() => {
-      this.bus.emit(TERMINAL_EVENTS.GAME_MEETING_START, {
-        meetingId: "mtg-demo-1",
-        organizer: "boss",
-        attendees: ["boss", "sup1", "emp1"],
-        agenda: "Sprint planning: auth module release",
-      });
+      if (this.mockTimerId !== null) {
+        this.bus.emit(TERMINAL_EVENTS.GAME_MEETING_START, {
+          meetingId: "mtg-demo-1",
+          organizer: "boss",
+          attendees: ["boss", "sup1", "emp1"],
+          agenda: "Sprint planning: auth module release",
+        });
+      }
     }, 12000);
   }
 
   disconnect() {
     this.ws?.close();
+    if (this.mockTimerId !== null) {
+      clearTimeout(this.mockTimerId);
+      this.mockTimerId = null;
+    }
   }
 }

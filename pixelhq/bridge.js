@@ -24,7 +24,12 @@ const WATCH_DIRS = [
   path.join(os.homedir(), ".opencode", "sessions"),
 ];
 // Accept extra watch dir from CLI
-if (args.includes("--watch")) WATCH_DIRS.unshift(args[args.indexOf("--watch") + 1]);
+if (args.includes("--watch")) {
+  const watchValue = args[args.indexOf("--watch") + 1];
+  if (watchValue && !watchValue.startsWith("-")) {
+    WATCH_DIRS.unshift(watchValue);
+  }
+}
 
 // ── Tool name → game event type mapping ───────────────────────────────────────
 const TOOL_MAP = {
@@ -73,6 +78,7 @@ function parseLine(line, sessionMeta) {
 
   if (type === "assistant" && message?.content) {
     const content = message.content;
+    if (!Array.isArray(content)) return null;
     // Text response
     const textBlock = content.find(b => b.type === "text");
     if (textBlock) {

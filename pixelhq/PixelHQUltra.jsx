@@ -358,7 +358,7 @@ function AgentSprite({ agent, isSelected, onClick }) {
 
       {/* Speech bubbles (stack, newest on top) */}
       <div style={{ position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)", width: 200, display: "flex", flexDirection: "column-reverse", gap: 4 }}>
-        {bubbles.map(b => (
+        {(bubbles || []).map(b => (
           <SpeechBubble key={b.id} bubble={b} agentColor={color} />
         ))}
       </div>
@@ -868,6 +868,7 @@ function TerminalFeed({ state }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function PixelHQUltra() {
   const [state, dispatch] = useReducer(reducer, INIT);
+  const timeoutsRef = useRef([]);
 
   // ── On mount: reveal tiles around initial camera, connect bridge ────────────
   useEffect(() => {
@@ -922,11 +923,12 @@ export default function PixelHQUltra() {
         // Fire particle
         dispatch({ type: "PARTICLE_ADD", particle: { from, to, type } });
         // Add bubble on sender
-        dispatch({ type: "ADD_BUBBLE", agentId: from, text: text || a2a.send, style: "a2a" });
+        dispatch({ type: "ADD_BUBBLE", agentId: from, text: text || "📡 A2A message", style: "a2a" });
         // After particle arrives, add bubble on receiver
-        setTimeout(() => {
+        const tid = setTimeout(() => {
           dispatch({ type: "ADD_BUBBLE", agentId: to, text: "Got it!", style: "a2a", color: "#4285F4" });
         }, 1200);
+        timeoutsRef.current.push(tid);
       }),
 
       bus.on(TERMINAL_EVENTS.GAME_MEETING_START, (meeting) => {
@@ -934,10 +936,11 @@ export default function PixelHQUltra() {
         // Move attendees toward meeting room
         (meeting.attendees || []).forEach((id, i) => {
           const chair = WAYPOINTS[`meetingChair${i + 1}`] || WAYPOINTS.meetingTable;
-          setTimeout(() => {
+          const tid = setTimeout(() => {
             dispatch({ type: "AGENT_MOVE", agentId: id, pos: chair });
             dispatch({ type: "AGENT_STATE", agentId: id, agentState: "meeting" });
           }, i * 600);
+          timeoutsRef.current.push(tid);
         });
         // Simulate meeting dialogue
         let delay = (meeting.attendees?.length || 1) * 700 + 400;
@@ -948,15 +951,17 @@ export default function PixelHQUltra() {
           { id: meeting.attendees?.[0] || "boss", text: "Great initiative. Let's set checkpoint for end of day." },
         ];
         topics.forEach(({ id, text }) => {
-          setTimeout(() => {
+          const tid = setTimeout(() => {
             dispatch({ type: "MEETING_STATEMENT", agentId: id, text });
             dispatch({ type: "ADD_BUBBLE", agentId: id, text, style: "speech" });
             dispatch({ type: "XP_GAIN", agentId: id, amount: XP_TABLE.meeting_attend });
             dispatch({ type: "STAT_INC", agentId: id, stat: "meetings" });
           }, delay);
+          timeoutsRef.current.push(tid);
           delay += 3000;
         });
-        setTimeout(() => dispatch({ type: "MEETING_END" }), delay + 1000);
+        const endTid = setTimeout(() => dispatch({ type: "MEETING_END" }), delay + 1000);
+        timeoutsRef.current.push(endTid);
       }),
 
       bus.on(TERMINAL_EVENTS.GAME_XP_GAIN, ({ agentId, amount, reason }) => {
@@ -992,6 +997,8 @@ export default function PixelHQUltra() {
       clearInterval(bubbleTimer);
       clearInterval(particleTimer);
       clearInterval(idleTimer);
+      timeoutsRef.current.forEach(tid => clearTimeout(tid));
+      timeoutsRef.current = [];
       bridge.disconnect();
     };
   }, []);
