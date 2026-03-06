@@ -163,6 +163,9 @@ The bridge is designed with a strict privacy gate:
 | XP + Evolution system | ✅ Shipped |
 | KG Overlay (25 nodes) | ✅ Shipped |
 | WebSocket spectator mode | ✅ Shipped |
+| Debate overlay + state wiring | ✅ Shipped |
+| Minimap with click-to-pan | ✅ Shipped |
+| Camera focus / per-agent follow | ✅ Shipped |
 | Mobile-responsive viewport | 🔜 Planned |
 | Sound effects + music | 🔜 Planned |
 | Multiplayer cursor sharing | 🔜 Planned |

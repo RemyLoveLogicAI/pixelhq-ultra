@@ -219,6 +219,28 @@ function reducer(state, action) {
       return { ...state, selectedAgent: action.agentId === state.selectedAgent ? null : action.agentId };
     }
 
+    case "CAMERA_FOCUS": {
+      const agent = state.agents[action.agentId];
+      if (!agent) return state;
+      return {
+        ...state,
+        camera: {
+          x: Math.max(0, Math.min(WORLD_W - VIEWPORT_W, agent.pos.x - Math.floor(VIEWPORT_W / 2))),
+          y: Math.max(0, Math.min(WORLD_H - VIEWPORT_H, agent.pos.y - Math.floor(VIEWPORT_H / 2))),
+        },
+      };
+    }
+
+    case "CAMERA_PAN": {
+      return {
+        ...state,
+        camera: {
+          x: Math.max(0, Math.min(WORLD_W - VIEWPORT_W, action.x)),
+          y: Math.max(0, Math.min(WORLD_H - VIEWPORT_H, action.y)),
+        },
+      };
+    }
+
     case "TOGGLE_HUD": {
       return { ...state, showHUD: !state.showHUD };
     }
@@ -520,6 +542,180 @@ function MeetingOverlay({ meeting, agents, dispatch }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ⚔️ DEBATE OVERLAY — floats over the bottom-left during active debates
+// ═══════════════════════════════════════════════════════════════════════════════
+function DebateOverlay({ debate, agents, dispatch }) {
+  if (!debate) return null;
+  const rounds = debate.rounds || [];
+  const bodyRef = useRef(null);
+  useEffect(() => { bodyRef.current?.scrollTo({ top: 9999, behavior: "smooth" }); }, [rounds.length]);
+  const agentA = agents[debate.a];
+  const agentB = agents[debate.b];
+
+  return (
+    <div style={{
+      position: "fixed",
+      left: 20,
+      bottom: 44,
+      width: 280,
+      background: "#0d1117",
+      border: "1px solid #21262d",
+      borderRadius: 10,
+      padding: 14,
+      zIndex: 300,
+      fontFamily: "'JetBrains Mono', monospace",
+      boxShadow: "0 8px 40px rgba(0,0,0,0.6)",
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: "#f85149" }}>
+          ⚔️ DEBATE IN SESSION
+        </div>
+        <button
+          onClick={() => dispatch({ type: "DEBATE_END" })}
+          style={{ background: "none", border: "none", color: "#8b949e", cursor: "pointer", fontSize: 12 }}
+        >✕</button>
+      </div>
+
+      <div style={{ fontSize: 9, color: "#586069", marginBottom: 10 }}>
+        Topic: <span style={{ color: "#e6edf3" }}>{debate.topic}</span>
+      </div>
+
+      {/* Combatants */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, gap: 8 }}>
+        {[agentA, agentB].map(ag => ag ? (
+          <div key={ag.id} style={{
+            flex: 1, textAlign: "center", padding: "4px 6px", borderRadius: 6,
+            background: ag.accent + "22",
+            border: `2px solid ${debate.turn === ag.id ? ag.color : "transparent"}`,
+            transition: "border-color 0.3s",
+          }}>
+            <div style={{ fontSize: 9, color: ag.color, fontWeight: 700 }}>{ag.name}</div>
+            <div style={{ fontSize: 7, color: "#586069" }}>{debate.turn === ag.id ? "Speaking…" : "Listening"}</div>
+          </div>
+        ) : null)}
+      </div>
+
+      {/* Rounds transcript */}
+      <div ref={bodyRef} style={{ maxHeight: 200, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+        {rounds.map((r, i) => {
+          const ag = agents[r.agentId];
+          return (
+            <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: ag?.color || "#586069", marginTop: 3, flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: 8, color: ag?.color || "#586069", fontWeight: 700 }}>{ag?.name || r.agentId}</div>
+                <div style={{ fontSize: 9, color: "#c9d1d9", lineHeight: 1.4 }}>{r.text}</div>
+              </div>
+            </div>
+          );
+        })}
+        {rounds.length === 0 && (
+          <div style={{ fontSize: 9, color: "#586069", textAlign: "center", padding: 8 }}>
+            Debate opening…
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🗺️ MINIMAP — canvas thumbnail of the full 60×38 world
+// ═══════════════════════════════════════════════════════════════════════════════
+const MSCALE = 4; // px per tile on minimap
+
+function Minimap({ state, dispatch }) {
+  const { agents, camera } = state;
+  const canvasRef = useRef(null);
+  const baseCanvasRef = useRef(null); // cached offscreen tile layer
+
+  // Render static tile base once into an offscreen canvas
+  useEffect(() => {
+    const offscreen = document.createElement("canvas");
+    offscreen.width  = WORLD_W * MSCALE;
+    offscreen.height = WORLD_H * MSCALE;
+    const ctx = offscreen.getContext("2d");
+    OFFICE_MAP.forEach((row, y) =>
+      row.forEach((tile, x) => {
+        const style = TILE_STYLE[tile] || TILE_STYLE[T.FLOOR];
+        ctx.fillStyle = style.bg;
+        ctx.fillRect(x * MSCALE, y * MSCALE, MSCALE, MSCALE);
+      })
+    );
+    baseCanvasRef.current = offscreen;
+  }, []); // runs once
+
+  // Composite base + dynamic elements (agents, viewport) on every relevant change
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const base   = baseCanvasRef.current;
+    if (!canvas || !base) return;
+    const ctx = canvas.getContext("2d");
+
+    // Restore cached tile layer
+    ctx.drawImage(base, 0, 0);
+
+    // Agent dots (3×3 px)
+    Object.values(agents).forEach(agent => {
+      ctx.fillStyle = agent.color;
+      ctx.fillRect(
+        Math.round(agent.pos.x * MSCALE) - 1,
+        Math.round(agent.pos.y * MSCALE) - 1,
+        3, 3
+      );
+    });
+
+    // Viewport rectangle
+    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(
+      camera.x * MSCALE,
+      camera.y * MSCALE,
+      VIEWPORT_W * MSCALE,
+      VIEWPORT_H * MSCALE
+    );
+  }, [agents, camera]);
+
+  const handleClick = useCallback((e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = (WORLD_W * MSCALE) / rect.width;
+    const scaleY = (WORLD_H * MSCALE) / rect.height;
+    const tileX  = Math.floor((e.clientX - rect.left) * scaleX / MSCALE);
+    const tileY  = Math.floor((e.clientY - rect.top)  * scaleY / MSCALE);
+    dispatch({
+      type: "CAMERA_PAN",
+      x: tileX - Math.floor(VIEWPORT_W / 2),
+      y: tileY - Math.floor(VIEWPORT_H / 2),
+    });
+  }, [dispatch]);
+
+  return (
+    <div style={{ background: "#0d1117", border: "1px solid #21262d", borderRadius: 8, padding: 10 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#8b949e", marginBottom: 6, letterSpacing: "0.5px" }}>
+        MINIMAP
+      </div>
+      <canvas
+        ref={canvasRef}
+        width={WORLD_W * MSCALE}
+        height={WORLD_H * MSCALE}
+        onClick={handleClick}
+        title="Click to pan camera"
+        style={{
+          display: "block",
+          width: "100%",
+          borderRadius: 4,
+          imageRendering: "pixelated",
+          cursor: "crosshair",
+        }}
+      />
+      <div style={{ fontSize: 7, color: "#484f58", marginTop: 4 }}>Click to pan · agent dots shown</div>
     </div>
   );
 }
@@ -847,6 +1043,25 @@ function HUD({ state, dispatch }) {
             &nbsp;·&nbsp;
             Pos: <span style={{ color: "#58a6ff" }}>{selected.pos.x},{selected.pos.y}</span>
           </div>
+
+          {/* Focus camera button */}
+          <button
+            onClick={() => dispatch({ type: "CAMERA_FOCUS", agentId: selected.id })}
+            style={{
+              marginTop: 8,
+              width: "100%",
+              padding: "4px 0",
+              borderRadius: 5,
+              border: `1px solid ${selected.color}44`,
+              background: selected.accent + "18",
+              color: selected.color,
+              fontSize: 9,
+              fontFamily: "'JetBrains Mono', monospace",
+              cursor: "pointer",
+            }}
+          >
+            📍 Focus Camera
+          </button>
         </div>
       )}
 
@@ -868,6 +1083,9 @@ function HUD({ state, dispatch }) {
           </div>
         ))}
       </div>
+
+      {/* Minimap */}
+      <Minimap state={state} dispatch={dispatch} />
     </div>
   );
 }
@@ -1175,18 +1393,27 @@ export default function PixelHQUltra() {
           </button>
           <button
             onClick={() => {
-              // Trigger debate demo
-              const debateId = a2a.openDebate("emp1", "emp2", "REST vs GraphQL for the API layer");
-              dispatch({ type: "ADD_BUBBLE", agentId: "emp1", text: "REST is simpler and more cacheable!", style: "shout" });
+              const DEBATE_A = "emp1";
+              const DEBATE_B = "emp2";
+              const TOPIC    = "REST vs GraphQL for the API layer";
+              const debateId = a2a.openDebate(DEBATE_A, DEBATE_B, TOPIC);
+              dispatch({ type: "DEBATE_START", debate: { debateId, a: DEBATE_A, b: DEBATE_B, topic: TOPIC } });
+              dispatch({ type: "ADD_BUBBLE", agentId: DEBATE_A, text: "REST is simpler and more cacheable!", style: "shout" });
+              dispatch({ type: "DEBATE_ROUND", agentId: DEBATE_A, text: "REST is simpler and more cacheable!" });
               setTimeout(() => {
-                dispatch({ type: "ADD_BUBBLE", agentId: "emp2", text: "But GraphQL gives clients exactly what they need!", style: "shout" });
+                dispatch({ type: "ADD_BUBBLE", agentId: DEBATE_B, text: "But GraphQL gives clients exactly what they need!", style: "shout" });
+                dispatch({ type: "DEBATE_ROUND", agentId: DEBATE_B, text: "But GraphQL gives clients exactly what they need!" });
               }, 2000);
               setTimeout(() => {
-                dispatch({ type: "ADD_BUBBLE", agentId: "emp1", text: "Fine... but what about our existing tooling?", style: "speech" });
+                dispatch({ type: "ADD_BUBBLE", agentId: DEBATE_A, text: "Fine... but what about our existing tooling?", style: "speech" });
+                dispatch({ type: "DEBATE_ROUND", agentId: DEBATE_A, text: "Fine... but what about our existing tooling?" });
               }, 4500);
               setTimeout(() => {
                 dispatch({ type: "ADD_BUBBLE", agentId: "sup1", text: "Team: both have merit. Let me escalate.", style: "speech" });
                 dispatch({ type: "ADD_BUBBLE", agentId: "boss", text: "Use GraphQL. Moving on.", style: "shout" });
+                dispatch({ type: "DEBATE_END" });
+                dispatch({ type: "XP_GAIN", agentId: DEBATE_B, amount: XP_TABLE.debate_win });
+                dispatch({ type: "TOAST", text: "⚔️ Debate ended: GraphQL wins! +25 XP", color: "#7e22ce" });
               }, 7000);
             }}
             style={{
@@ -1248,6 +1475,9 @@ export default function PixelHQUltra() {
 
       {/* MEETING OVERLAY */}
       <MeetingOverlay meeting={state.meeting} agents={state.agents} dispatch={dispatch} />
+
+      {/* DEBATE OVERLAY */}
+      <DebateOverlay debate={state.debate} agents={state.agents} dispatch={dispatch} />
 
       {/* FOOTER */}
       <div style={{
