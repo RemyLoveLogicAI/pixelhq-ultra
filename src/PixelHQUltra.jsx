@@ -8,6 +8,7 @@ import {
   T, TILE_STYLE, generateOfficeMap,
   WAYPOINTS, DEST_BY_EVENT, INITIAL_AGENTS, AGENT_ROLES, XP_TABLE, EVOLUTION_MILESTONES,
 } from "./officeData.js";
+import { KGOverlay, KG_NODES, KG_EDGES, TIER_STYLE, EDGE_STYLE } from "./kgOverlay.js";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🌐 SINGLETONS — created once, shared via context/closure
@@ -16,6 +17,7 @@ const bus      = new EventBus();
 const a2a      = new A2AProtocol(bus);
 const personas = new PersonalityEngine();
 const OFFICE_MAP = generateOfficeMap();
+const kgOverlay  = new KGOverlay(bus);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🎮 STATE — reducer + initial state
@@ -530,6 +532,72 @@ function OfficeWorld({ state, dispatch }) {
   const vw = VIEWPORT_W * TILE;
   const vh = VIEWPORT_H * TILE;
 
+  // ── KG Overlay: canvas ref + toggle state ──────────────────────────────────
+  const kgCanvasRef = useRef(null);
+  const [kgVisible, setKgVisible] = useState(false);
+  const kgMouseRef = useRef({ x: 0, y: 0 });
+
+  // Keyboard: K toggles KG overlay
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === "k" || e.key === "K") {
+        setKgVisible(v => {
+          const next = !v;
+          kgOverlay.visible = next;
+          return next;
+        });
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  // Canvas render loop for KG overlay
+  useEffect(() => {
+    if (!kgVisible) return;
+    const canvas = kgCanvasRef.current;
+    if (!canvas) return;
+    canvas.width = vw;
+    canvas.height = vh;
+    const ctx = canvas.getContext("2d");
+    let raf;
+    const draw = () => {
+      ctx.clearRect(0, 0, vw, vh);
+      kgOverlay.visible = true;
+      kgOverlay.render(ctx, camera);
+      kgOverlay.renderLegend(ctx, vw - 165, 10);
+      raf = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => cancelAnimationFrame(raf);
+  }, [kgVisible, camera.x, camera.y, vw, vh]);
+
+  // Mouse interaction on KG canvas
+  const handleKgMouse = useCallback((e) => {
+    if (!kgVisible) return;
+    const rect = kgCanvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    // Convert screen → world tile coords
+    const wx = (mx / TILE) + camera.x;
+    const wy = (my / TILE) + camera.y;
+    const hit = kgOverlay.hitTest(wx, wy);
+    kgOverlay.hoveredNode = hit;
+  }, [kgVisible, camera.x, camera.y]);
+
+  const handleKgClick = useCallback((e) => {
+    if (!kgVisible) return;
+    const rect = kgCanvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const wx = (mx / TILE) + camera.x;
+    const wy = (my / TILE) + camera.y;
+    const hit = kgOverlay.hitTest(wx, wy);
+    kgOverlay.selectedNode = kgOverlay.selectedNode === hit ? null : hit;
+  }, [kgVisible, camera.x, camera.y]);
+
   return (
     <div style={{
       width: vw,
@@ -612,6 +680,21 @@ function OfficeWorld({ state, dispatch }) {
           CAM {camera.x},{camera.y}
         </div>
       </div>
+
+      {/* KG OVERLAY — Canvas layer */}
+      {kgVisible && (
+        <canvas
+          ref={kgCanvasRef}
+          onMouseMove={handleKgMouse}
+          onClick={handleKgClick}
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 300,
+            cursor: kgOverlay.hoveredNode ? "pointer" : "default",
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -1080,6 +1163,17 @@ export default function PixelHQUltra() {
             📅 Call Meeting
           </button>
           <button
+            onClick={() => bus.emit("kg:toggle")}
+            style={{
+              padding: "5px 12px", borderRadius: 6, border: "1px solid #21262d",
+              background: "#161b22", color: "#06B6D4", fontSize: 10, cursor: "pointer",
+              fontFamily: "monospace",
+            }}
+            title="Toggle Knowledge Graph overlay (K)"
+          >
+            🗺️ KG Overlay
+          </button>
+          <button
             onClick={() => {
               // Trigger debate demo
               const debateId = a2a.openDebate("emp1", "emp2", "REST vs GraphQL for the API layer");
@@ -1171,7 +1265,7 @@ export default function PixelHQUltra() {
         <span>Feed: {state.termFeed.length} events</span>
         <span>Camera: {state.camera.x},{state.camera.y}</span>
         <span style={{ marginLeft: "auto" }}>
-          A2A · MCP-compatible · Fog-of-War · Evolution Engine
+          A2A · MCP-compatible · Fog-of-War · Evolution Engine · KG: {Object.keys(KG_NODES).length}N/{KG_EDGES.length}E [K]
         </span>
       </div>
     </div>
