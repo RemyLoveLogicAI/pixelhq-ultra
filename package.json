@@ -1,13 +1,14 @@
 {
   "name": "pixelhq-ultra",
   "version": "0.1.0",
+  "private": true,
   "description": "PixelHQ ULTRA — Multi-agent pixel office with A2A protocol, terminal correlation, and evolution engine",
-  "main": "bridge.js",
   "scripts": {
-    "bridge": "node bridge.js",
-    "bridge:dev": "node bridge.js --port 7890",
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "preview": "vite preview",
+    "bridge": "node src/bridge.js",
+    "bridge:dev": "node src/bridge.js --port 7890"
   },
   "dependencies": {
     "react": "^18.3.0",
