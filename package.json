@@ -11,6 +11,7 @@
     "bridge:dev": "node src/bridge.js --port 7890"
   },
   "dependencies": {
+    "@vercel/analytics": "^1.6.1",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "ws": "^8.18.0"
@@ -19,6 +20,8 @@
     "@vitejs/plugin-react": "^4.3.0",
     "vite": "^5.4.0"
   },
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "license": "MIT"
 }

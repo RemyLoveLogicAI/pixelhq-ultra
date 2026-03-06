@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useReducer, useMemo } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import {
   EventBus, A2AProtocol, A2A_MSG, PersonalityEngine, TerminalBridge, TERMINAL_EVENTS,
   TOOL_DESTINATION,
@@ -407,7 +408,7 @@ function AgentSprite({ agent, isSelected, onClick }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ════════════════���══════════════════════════════════════════════════════════════
 // ✉️ MESSAGE PARTICLE — flies between agent positions
 // ═══════════════════════════════════════════════════════════════════════════════
 function MessageParticle({ particle, agents }) {
@@ -1268,6 +1269,7 @@ export default function PixelHQUltra() {
           A2A · MCP-compatible · Fog-of-War · Evolution Engine · KG: {Object.keys(KG_NODES).length}N/{KG_EDGES.length}E [K]
         </span>
       </div>
+      <Analytics />
     </div>
   );
 }
