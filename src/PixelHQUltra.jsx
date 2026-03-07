@@ -623,21 +623,21 @@ function DebateOverlay({ debate, agents, dispatch }) {
   );
 }
 
-function useViewportProfile() {
-  const getProfile = () => {
-    if (typeof window === "undefined") {
-      return { width: 1440, compact: false, stacked: false, scale: 1 };
-    }
-    const width = window.innerWidth;
-    if (width < 760) {
-      return { width, compact: true, stacked: true, scale: Math.max(0.54, Math.min(0.72, (width - 32) / (VIEWPORT_W * TILE))) };
-    }
-    if (width < 1180) {
-      return { width, compact: true, stacked: false, scale: Math.max(0.78, Math.min(0.94, (width - 360) / (VIEWPORT_W * TILE))) };
-    }
-    return { width, compact: false, stacked: false, scale: 1 };
-  };
+function getProfile() {
+  if (typeof window === "undefined") {
+    return { width: 1440, compact: false, stacked: false, scale: 1 };
+  }
+  const width = window.innerWidth;
+  if (width < 760) {
+    return { width, compact: true, stacked: true, scale: Math.max(0.54, Math.min(0.72, (width - 32) / (VIEWPORT_W * TILE))) };
+  }
+  if (width < 1180) {
+    return { width, compact: true, stacked: false, scale: Math.max(0.78, Math.min(0.94, (width - 360) / (VIEWPORT_W * TILE))) };
+  }
+  return { width, compact: false, stacked: false, scale: 1 };
+}
 
+function useViewportProfile() {
   const [profile, setProfile] = useState(getProfile);
 
   useEffect(() => {
