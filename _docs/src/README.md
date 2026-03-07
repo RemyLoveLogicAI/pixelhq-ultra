@@ -4,24 +4,25 @@
 {
   "doc_type": "directory_index",
   "directory_path": "_docs/src",
-  "directory_hash": "51a4be98015d0ba199fdf6b3cc08db748d5de7680db533e5aba3afc694e6e08a",
-  "file_count": 1,
+  "directory_hash": "cce1ee814bbb70bc1eb20a46fba0d842195d3f64e83b314515aec5c43f005eb7",
+  "file_count": 2,
   "file_hashes": {
-    "officeData.js": "fa7ffb64ad5abd10"
+    "PixelHQUltra.jsx": "33ac2141f0ee9001",
+    "officeData.js": "b4495ccf39dea243"
   }
 }
 ```
 
 </details>
 
-[Documentation Home](../README.md) > **src**
+[Documentation Home](../README.md) > [src](./README.md) > **src**
 
 ---
 
 # 📁 src
 
-> **Purpose:** Documentation source directory containing one JavaScript file (officeData.js). The explicit purpose of the file is not documented in the provided listing; inspect the file for details.
->
+> **Purpose:** Contains source assets for documentation demo pages: a JSX component file and a JavaScript data file used by those pages.
+> 
 
 ![Organization: Flat](https://img.shields.io/badge/Organization-Flat-blue)
 
@@ -36,24 +37,26 @@
 
 ## Overview
 
-This directory (_docs/src) is a small documentation source folder that contains a single JavaScript file: officeData.js. The provided file listing does not include a documented purpose for officeData.js, so its specific responsibilities should be determined by opening the file. At present, the directory is flat and focused on that single artifact.
+This directory (_docs/src) holds two root-level source files that together support documentation or example pages. At the root there is PixelHQUltra.jsx (a JSX-format source file) and officeData.js (a JavaScript data file). The JSX file is intended to provide a UI component or view in JSX format, while the JS file is intended to provide related data used by that component or other demo pages. Both files are short and focused, and the directory is organized to keep component/view code next to its data dependencies.
 
-Because there are no subdirectories or additional files listed, the role this directory plays in the larger repository is limited to whatever data or logic is contained within officeData.js. Developers should treat this directory as a place for documentation-related source assets (currently one JS file) and should look inside officeData.js to understand how it is consumed by other parts of the system or documentation build processes.
+There are no subdirectories in this folder. The contents suggest a simple, flat layout where UI (JSX) and its static or example data (JS) are colocated for ease of maintenance. In the larger system, this directory likely serves as a small self-contained source bundle for documentation pages or examples: the JSX file renders or demonstrates a feature and the JS file supplies the data used in that demonstration. Because specific internal functions or exports are not described in the provided metadata, further inspection of the files themselves is required to understand their exact APIs and runtime integration.
 
 
 ### File Organization
 
-A single-file flat organization: all content at the root of the directory. This keeps the directory minimal; if more assets are added in the future, consider grouping by type (data, templates, scripts).
+Files are organized flat at the directory root: one JSX component file (PixelHQUltra.jsx) and one JavaScript data file (officeData.js). This keeps component code and its example/static data colocated for easy reference.
 
 ## 📂 All Files
 
 | File | Type |
 | --- | --- |
+| [PixelHQUltra.jsx](./PixelHQUltra.jsx.md) | ⚛️ React |
 | [officeData.js](./officeData.js.md) | 📜 JavaScript |
 
 ## Architecture Notes
 
-- Single-file directory with no declared architecture pattern. The directory currently acts as a container for one JavaScript source asset; any structural decisions should be made after inspecting officeData.js.
+- Flat directory layout keeps a single JSX component and its data file colocated for simple documentation demos.
+- Separation between UI (JSX) and data (JS) suggests a pattern of storing example/static data separately from presentation logic.
 
 ---
 
