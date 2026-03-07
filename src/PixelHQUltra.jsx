@@ -697,7 +697,7 @@ function PlatformMatrix({ agents, compact = false }) {
           color: "#93c5fd",
           fontFamily: "'JetBrains Mono', monospace",
         }}>
-          <span>4 endpoints</span>
+          <span>{platformCards.length} endpoints</span>
           <span style={{ color: "#30363d" }}>•</span>
           <span>{Object.values(agents).length} agents routed</span>
         </div>
