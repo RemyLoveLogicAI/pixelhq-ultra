@@ -14,7 +14,7 @@
 
 </details>
 
-[Documentation Home](../README.md) > [src](./README.md) > **src**
+[Documentation Home](../README.md) > **src**
 
 ---
 
