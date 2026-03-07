@@ -1353,6 +1353,7 @@ function TerminalFeed({ state, compact = false }) {
       overflow: "hidden",
       fontFamily: "'JetBrains Mono', monospace",
       flexShrink: 0,
+      ...(compact && { maxHeight: 250 }),
     }}>
       <div style={{ padding: "8px 12px", borderBottom: "1px solid #21262d", fontSize: 10, fontWeight: 700, color: "#8b949e", letterSpacing: "0.5px" }}>
         TERMINAL CORRELATION
