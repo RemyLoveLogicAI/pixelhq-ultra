@@ -260,6 +260,40 @@ export const DEST_BY_EVENT = {
 // ─── Agent definitions ────────────────────────────────────────────────────────
 // ROLE hierarchy: boss → supervisor → employee → intern
 export const AGENT_ROLES = { BOSS: "boss", SUPERVISOR: "supervisor", EMPLOYEE: "employee", INTERN: "intern" };
+export const PLATFORM_CONFIG = {
+  mobile: {
+    id: "mobile",
+    label: "Mobile",
+    icon: "📱",
+    color: "#38bdf8",
+    accent: "#0f172a",
+    description: "Pocket alerts, approvals, and live swarm status.",
+  },
+  desktop: {
+    id: "desktop",
+    label: "Desktop",
+    icon: "🖥️",
+    color: "#f59e0b",
+    accent: "#1f1300",
+    description: "Primary build station with full orchestration controls.",
+  },
+  web: {
+    id: "web",
+    label: "Web",
+    icon: "🌐",
+    color: "#34d399",
+    accent: "#052e26",
+    description: "Zero-install spectator and operator console.",
+  },
+  chrome_extension: {
+    id: "chrome_extension",
+    label: "Chrome Extension",
+    icon: "🧩",
+    color: "#f97316",
+    accent: "#2a1405",
+    description: "Browser-side context capture, quick actions, and overlays.",
+  },
+};
 
 // Pixel art: 7 wide × 12 tall, each cell is a color string or 0 (transparent)
 const _ = 0;
@@ -367,6 +401,7 @@ export const INITIAL_AGENTS = [
     color: "#FFD700",
     accent: "#D97706",
     tool: "claudecode",
+    platforms: ["desktop", "web"],
     spawn: WAYPOINTS.bossDesk,
     homeWaypoint: "bossDesk",
     xp: 0, level: 1, xpToNext: 100,
@@ -384,6 +419,7 @@ export const INITIAL_AGENTS = [
     color: "#93C5FD",
     accent: "#4169E1",
     tool: "claudecode",
+    platforms: ["desktop", "web", "chrome_extension"],
     spawn: WAYPOINTS.supDesk1,
     homeWaypoint: "supDesk1",
     xp: 0, level: 1, xpToNext: 100,
@@ -401,6 +437,7 @@ export const INITIAL_AGENTS = [
     color: "#86EFAC",
     accent: "#22C55E",
     tool: "codexcli",
+    platforms: ["desktop", "web"],
     spawn: { x: 15, y: 3 },
     homeWaypoint: "workspaceCenter",
     xp: 0, level: 1, xpToNext: 75,
@@ -418,6 +455,7 @@ export const INITIAL_AGENTS = [
     color: "#FCA5A5",
     accent: "#EF4444",
     tool: "geminicli",
+    platforms: ["mobile", "web"],
     spawn: { x: 21, y: 3 },
     homeWaypoint: "workspaceCenter",
     xp: 0, level: 1, xpToNext: 75,
@@ -435,6 +473,7 @@ export const INITIAL_AGENTS = [
     color: "#D8B4FE",
     accent: "#A855F7",
     tool: "opencode",
+    platforms: ["web", "chrome_extension"],
     spawn: { x: 27, y: 5 },
     homeWaypoint: "workspaceCenter",
     xp: 0, level: 1, xpToNext: 75,
@@ -452,6 +491,7 @@ export const INITIAL_AGENTS = [
     color: "#FED7AA",
     accent: "#FB923C",
     tool: "claudecode",
+    platforms: ["mobile", "desktop"],
     spawn: WAYPOINTS.internDesk1,
     homeWaypoint: "internDesk1",
     xp: 0, level: 1, xpToNext: 50,
@@ -469,6 +509,7 @@ export const INITIAL_AGENTS = [
     color: "#99F6E4",
     accent: "#14B8A6",
     tool: "codexcli",
+    platforms: ["desktop", "chrome_extension"],
     spawn: WAYPOINTS.internDesk2,
     homeWaypoint: "internDesk2",
     xp: 0, level: 1, xpToNext: 50,

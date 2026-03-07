@@ -29,6 +29,8 @@ Think of it as a **game UI for your AI agent swarm** — agents walk to meeting 
 - **Knowledge Graph overlay** mapping the full 25-node LoveLogicAI architecture onto the tile grid with typed, animated edges
 - **Personality engine** giving each agent distinct behavioral patterns
 - **WebSocket broadcast** for real-time multi-viewer spectating
+- **Platform fleet dashboard** for mobile, desktop, web, and Chrome extension surfaces
+- **Responsive mission control layout** that scales the office viewport down for smaller screens
 
 ---
 
@@ -166,7 +168,8 @@ The bridge is designed with a strict privacy gate:
 | Debate overlay + state wiring | ✅ Shipped |
 | Minimap with click-to-pan | ✅ Shipped |
 | Camera focus / per-agent follow | ✅ Shipped |
-| Mobile-responsive viewport | 🔜 Planned |
+| Mobile-responsive viewport | ✅ Shipped |
+| Platform fleet dashboard | ✅ Shipped |
 | Sound effects + music | 🔜 Planned |
 | Multiplayer cursor sharing | 🔜 Planned |
 

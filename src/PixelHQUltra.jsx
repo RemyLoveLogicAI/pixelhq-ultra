@@ -1,14 +1,13 @@
-import { useState, useEffect, useCallback, useRef, useReducer, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useReducer } from "react";
 import {
   EventBus, A2AProtocol, A2A_MSG, PersonalityEngine, TerminalBridge, TERMINAL_EVENTS,
-  TOOL_DESTINATION,
 } from "./engine.js";
 import {
   TILE, WORLD_W, WORLD_H, VIEWPORT_W, VIEWPORT_H,
   T, TILE_STYLE, generateOfficeMap,
-  WAYPOINTS, DEST_BY_EVENT, INITIAL_AGENTS, AGENT_ROLES, XP_TABLE, EVOLUTION_MILESTONES,
+  WAYPOINTS, INITIAL_AGENTS, AGENT_ROLES, XP_TABLE, EVOLUTION_MILESTONES, PLATFORM_CONFIG,
 } from "./officeData.js";
-import { KGOverlay, KG_NODES, KG_EDGES, TIER_STYLE, EDGE_STYLE } from "./kgOverlay.js";
+import { KGOverlay, KG_NODES, KG_EDGES } from "./kgOverlay.js";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🌐 SINGLETONS — created once, shared via context/closure
@@ -18,6 +17,35 @@ const a2a      = new A2AProtocol(bus);
 const personas = new PersonalityEngine();
 const OFFICE_MAP = generateOfficeMap();
 const kgOverlay  = new KGOverlay(bus);
+const WORLD_VIEWPORT_PX = VIEWPORT_W * TILE;
+const FULL_FEED_WIDTH = 260;
+const FULL_HUD_WIDTH = 240;
+const COMPACT_PANEL_WIDTH = 220;
+const LAYOUT_HORIZONTAL_PADDING = 24;
+const LAYOUT_COLUMN_GAP = 24;
+const INLINE_SCALE_MIN = 0.78;
+const STACKED_SCALE_MIN = 0.54;
+const STACKED_SCALE_MAX = 0.72;
+const DESKTOP_ROW_BUDGET = WORLD_VIEWPORT_PX + FULL_FEED_WIDTH + FULL_HUD_WIDTH + LAYOUT_HORIZONTAL_PADDING + LAYOUT_COLUMN_GAP;
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function getViewportProfile(width = typeof window === "undefined" ? 1440 : window.innerWidth) {
+  const compact = width < DESKTOP_ROW_BUDGET;
+  const sidePaneWidth = compact ? COMPACT_PANEL_WIDTH * 2 : FULL_FEED_WIDTH + FULL_HUD_WIDTH;
+  const availableWorldWidth = width - LAYOUT_HORIZONTAL_PADDING - LAYOUT_COLUMN_GAP - sidePaneWidth;
+  const stacked = availableWorldWidth < WORLD_VIEWPORT_PX * INLINE_SCALE_MIN;
+  const scale = stacked
+    ? clamp((width - LAYOUT_HORIZONTAL_PADDING) / WORLD_VIEWPORT_PX, STACKED_SCALE_MIN, STACKED_SCALE_MAX)
+    : clamp(availableWorldWidth / WORLD_VIEWPORT_PX, INLINE_SCALE_MIN, 1);
+  return { width, compact, stacked, scale };
+}
+
+function getAgentPlatformIds(agent) {
+  return (agent?.platforms || []).filter((platformId) => typeof platformId === "string" && PLATFORM_CONFIG[platformId]);
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🎮 STATE — reducer + initial state
@@ -624,6 +652,161 @@ function DebateOverlay({ debate, agents, dispatch }) {
   );
 }
 
+function useViewportProfile() {
+  const [profile, setProfile] = useState(() => getViewportProfile());
+
+  useEffect(() => {
+    const handleResize = () => setProfile(getViewportProfile());
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return profile;
+}
+
+function PlatformMatrix({ agents, compact = false }) {
+  const platformCards = Object.values(PLATFORM_CONFIG).map((platform) => {
+    const owners = Object.values(agents).filter(agent => getAgentPlatformIds(agent).includes(platform.id));
+    const busyCount = owners.filter(agent => agent.state === "working" || agent.state === "meeting").length;
+    return {
+      ...platform,
+      owners,
+      busyCount,
+      status: owners.length > 0 ? (busyCount > 0 ? "Hot" : "Ready") : "Dormant",
+    };
+  });
+
+  return (
+    <div style={{
+      background: "linear-gradient(135deg, rgba(7,12,20,0.94), rgba(14,19,28,0.88))",
+      border: "1px solid #21262d",
+      borderRadius: 12,
+      padding: compact ? 12 : 14,
+      boxShadow: "0 20px 60px rgba(0,0,0,0.28)",
+    }}>
+      <div style={{
+        display: "flex",
+        alignItems: compact ? "flex-start" : "center",
+        justifyContent: "space-between",
+        gap: 10,
+        flexWrap: "wrap",
+        marginBottom: 12,
+      }}>
+        <div>
+          <div style={{ fontSize: 10, color: "#8b949e", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 4 }}>
+            Platform Fleet
+          </div>
+          <div style={{ fontSize: compact ? 14 : 16, fontWeight: 800, color: "#f0f6fc" }}>
+            Mobile, desktop, web, and Chrome extension surfaces
+          </div>
+        </div>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "6px 10px",
+          borderRadius: 999,
+          background: "#111827",
+          border: "1px solid #1f2937",
+          fontSize: 9,
+          color: "#93c5fd",
+          fontFamily: "'JetBrains Mono', monospace",
+        }}>
+          <span>{platformCards.length} endpoints</span>
+          <span style={{ color: "#30363d" }}>•</span>
+          <span>{Object.values(agents).length} agents routed</span>
+        </div>
+      </div>
+
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: compact ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
+        gap: 10,
+      }}>
+        {platformCards.map((platform) => (
+          <div
+            key={platform.id}
+            style={{
+              position: "relative",
+              minHeight: compact ? 158 : 172,
+              padding: 12,
+              borderRadius: 12,
+              border: `1px solid ${platform.color}44`,
+              background: `linear-gradient(160deg, ${platform.accent}, rgba(3,7,18,0.96))`,
+              overflow: "hidden",
+            }}
+          >
+            <div style={{
+              position: "absolute",
+              top: -28,
+              right: -20,
+              width: 86,
+              height: 86,
+              borderRadius: "50%",
+              background: `${platform.color}18`,
+              filter: "blur(4px)",
+            }} />
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                <div style={{ fontSize: 20 }}>{platform.icon}</div>
+                <div style={{
+                  padding: "3px 7px",
+                  borderRadius: 999,
+                  background: "#0b1220cc",
+                  border: `1px solid ${platform.color}55`,
+                  fontSize: 8,
+                  color: platform.color,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.12em",
+                  fontWeight: 700,
+                }}>
+                  {platform.status}
+                </div>
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#f8fafc", marginBottom: 5 }}>
+                {platform.label}
+              </div>
+              <div style={{ fontSize: 9, color: "#94a3b8", lineHeight: 1.5, minHeight: compact ? 42 : 54 }}>
+                {platform.description}
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 10, marginBottom: 10 }}>
+                <div style={{ flex: 1, padding: "8px 9px", borderRadius: 8, background: "#020617aa", border: "1px solid #1e293b" }}>
+                  <div style={{ fontSize: 7, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.12em" }}>Agents</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: platform.color }}>{platform.owners.length}</div>
+                </div>
+                <div style={{ flex: 1, padding: "8px 9px", borderRadius: 8, background: "#020617aa", border: "1px solid #1e293b" }}>
+                  <div style={{ fontSize: 7, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.12em" }}>Active</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#e2e8f0" }}>{platform.busyCount}</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {platform.owners.length > 0 ? platform.owners.map(agent => (
+                  <div
+                    key={`${platform.id}-${agent.id}`}
+                    style={{
+                      padding: "4px 7px",
+                      borderRadius: 999,
+                      background: `${agent.accent}22`,
+                      border: `1px solid ${agent.color}33`,
+                      fontSize: 8,
+                      color: agent.color,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {agent.name}
+                  </div>
+                )) : (
+                  <div style={{ fontSize: 8, color: "#64748b" }}>No agents routed yet</div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🗺️ MINIMAP — canvas thumbnail of the full 60×38 world
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -723,7 +906,7 @@ function Minimap({ state, dispatch }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🗺️ OFFICE WORLD — panning tile map + all agents + particles
 // ═══════════════════════════════════════════════════════════════════════════════
-function OfficeWorld({ state, dispatch }) {
+function OfficeWorld({ state, dispatch, scale = 1 }) {
   const { agents, camera, particles, revealed, selectedAgent } = state;
   const vw = VIEWPORT_W * TILE;
   const vh = VIEWPORT_H * TILE;
@@ -731,22 +914,28 @@ function OfficeWorld({ state, dispatch }) {
   // ── KG Overlay: canvas ref + toggle state ──────────────────────────────────
   const kgCanvasRef = useRef(null);
   const [kgVisible, setKgVisible] = useState(false);
-  const kgMouseRef = useRef({ x: 0, y: 0 });
+  const toggleKgVisible = useCallback(() => {
+    setKgVisible((visible) => {
+      const next = !visible;
+      kgOverlay.visible = next;
+      return next;
+    });
+  }, []);
 
   // Keyboard: K toggles KG overlay
   useEffect(() => {
     const handler = (e) => {
       if (e.key === "k" || e.key === "K") {
-        setKgVisible(v => {
-          const next = !v;
-          kgOverlay.visible = next;
-          return next;
-        });
+        toggleKgVisible();
       }
     };
+    const unsubscribe = bus.on("kg:toggle", toggleKgVisible);
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      unsubscribe();
+    };
+  }, [toggleKgVisible]);
 
   // Canvas render loop for KG overlay
   useEffect(() => {
@@ -773,31 +962,31 @@ function OfficeWorld({ state, dispatch }) {
     if (!kgVisible) return;
     const rect = kgCanvasRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+    const mx = (e.clientX - rect.left) * (vw / rect.width);
+    const my = (e.clientY - rect.top) * (vh / rect.height);
     // Convert screen → world tile coords
     const wx = (mx / TILE) + camera.x;
     const wy = (my / TILE) + camera.y;
     const hit = kgOverlay.hitTest(wx, wy);
     kgOverlay.hoveredNode = hit;
-  }, [kgVisible, camera.x, camera.y]);
+  }, [kgVisible, camera.x, camera.y, vw, vh]);
 
   const handleKgClick = useCallback((e) => {
     if (!kgVisible) return;
     const rect = kgCanvasRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+    const mx = (e.clientX - rect.left) * (vw / rect.width);
+    const my = (e.clientY - rect.top) * (vh / rect.height);
     const wx = (mx / TILE) + camera.x;
     const wy = (my / TILE) + camera.y;
     const hit = kgOverlay.hitTest(wx, wy);
     kgOverlay.selectedNode = kgOverlay.selectedNode === hit ? null : hit;
-  }, [kgVisible, camera.x, camera.y]);
+  }, [kgVisible, camera.x, camera.y, vw, vh]);
 
   return (
     <div style={{
-      width: vw,
-      height: vh,
+      width: vw * scale,
+      height: vh * scale,
       overflow: "hidden",
       position: "relative",
       borderRadius: 8,
@@ -805,92 +994,123 @@ function OfficeWorld({ state, dispatch }) {
       boxShadow: "0 0 60px rgba(0,0,0,0.8)",
       flexShrink: 0,
     }}>
-      {/* Scanline overlay for retro effect */}
-      <div style={{
-        position: "absolute", inset: 0, zIndex: 400, pointerEvents: "none",
-        background: "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.07) 1px, rgba(0,0,0,0.07) 2px)",
-      }} />
-
-      {/* World container — scrolled by camera */}
       <div style={{
         position: "absolute",
-        width: WORLD_W * TILE,
-        height: WORLD_H * TILE,
-        transform: `translate(${-camera.x * TILE}px, ${-camera.y * TILE}px)`,
-        transition: "transform 0.35s cubic-bezier(.4,0,.2,1)",
-        willChange: "transform",
+        left: 0,
+        top: 0,
+        width: vw,
+        height: vh,
+        transform: `scale(${scale})`,
+        transformOrigin: "top left",
       }}>
-        {/* TILES */}
-        {OFFICE_MAP.map((row, y) =>
-          row.map((tileType, x) => {
-            const style = TILE_STYLE[tileType] || TILE_STYLE[T.FLOOR];
-            const isRevealed = revealed.has(`${x},${y}`);
-            return (
-              <div
-                key={`${x}-${y}`}
-                style={{
-                  position: "absolute",
-                  left: x * TILE,
-                  top:  y * TILE,
-                  width: TILE, height: TILE,
-                  background: style.bg,
-                  border: style.border,
-                  boxSizing: "border-box",
-                  fontSize: TILE * 0.45,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  lineHeight: 1,
-                  // Fog of war
-                  filter: isRevealed ? "none" : "brightness(0.1)",
-                  transition: "filter 0.8s ease",
-                  overflow: "hidden",
-                }}
-              >
-                {style.label || ""}
-              </div>
-            );
-          })
-        )}
+        {/* Scanline overlay for retro effect */}
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 400, pointerEvents: "none",
+          background: "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.07) 1px, rgba(0,0,0,0.07) 2px)",
+        }} />
 
-        {/* AGENTS */}
-        {Object.values(agents).map(agent => (
-          <AgentSprite
-            key={agent.id}
-            agent={agent}
-            isSelected={selectedAgent === agent.id}
-            onClick={() => dispatch({ type: "SELECT_AGENT", agentId: agent.id })}
-          />
-        ))}
+        {/* World container — scrolled by camera */}
+        <div style={{
+          position: "absolute",
+          width: WORLD_W * TILE,
+          height: WORLD_H * TILE,
+          transform: `translate(${-camera.x * TILE}px, ${-camera.y * TILE}px)`,
+          transition: "transform 0.35s cubic-bezier(.4,0,.2,1)",
+          willChange: "transform",
+        }}>
+          {/* TILES */}
+          {OFFICE_MAP.map((row, y) =>
+            row.map((tileType, x) => {
+              const style = TILE_STYLE[tileType] || TILE_STYLE[T.FLOOR];
+              const isRevealed = revealed.has(`${x},${y}`);
+              return (
+                <div
+                  key={`${x}-${y}`}
+                  style={{
+                    position: "absolute",
+                    left: x * TILE,
+                    top:  y * TILE,
+                    width: TILE, height: TILE,
+                    background: style.bg,
+                    border: style.border,
+                    boxSizing: "border-box",
+                    fontSize: TILE * 0.45,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    lineHeight: 1,
+                    filter: isRevealed ? "none" : "brightness(0.1)",
+                    transition: "filter 0.8s ease",
+                    overflow: "hidden",
+                  }}
+                >
+                  {style.label || ""}
+                </div>
+              );
+            })
+          )}
 
-        {/* PARTICLES — flying A2A messages */}
-        {particles.map(p => (
-          <MessageParticle key={p.id} particle={p} agents={agents} />
-        ))}
-      </div>
+          {/* AGENTS */}
+          {Object.values(agents).map(agent => (
+            <AgentSprite
+              key={agent.id}
+              agent={agent}
+              isSelected={selectedAgent === agent.id}
+              onClick={() => dispatch({ type: "SELECT_AGENT", agentId: agent.id })}
+            />
+          ))}
 
-      {/* Room labels (fixed overlay) */}
-      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10 }}>
-        {/* These would be positioned based on camera offset — simplified here */}
-        <div style={{ position: "absolute", top: 4, left: 4, fontSize: 8, color: "#30363d", fontFamily: "monospace" }}>
-          CAM {camera.x},{camera.y}
+          {/* PARTICLES — flying A2A messages */}
+          {particles.map(p => (
+            <MessageParticle key={p.id} particle={p} agents={agents} />
+          ))}
         </div>
-      </div>
 
-      {/* KG OVERLAY — Canvas layer */}
-      {kgVisible && (
-        <canvas
-          ref={kgCanvasRef}
-          onMouseMove={handleKgMouse}
-          onClick={handleKgClick}
-          style={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 300,
-            cursor: kgOverlay.hoveredNode ? "pointer" : "default",
-          }}
-        />
-      )}
+        {/* Room labels — positioned in world space, offset by camera */}
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10 }}>
+          {[
+            { label: "MEETING ROOM",   x: 7,  y: 1,  color: "#fbbf24" },
+            { label: "BOSS OFFICE",    x: 52, y: 1,  color: "#FFD700" },
+            { label: "OPEN WORKSPACE", x: 25, y: 1,  color: "#8b949e" },
+            { label: "SUPERVISOR ZONE",x: 25, y: 14, color: "#93C5FD" },
+            { label: "BREAK ROOM",     x: 7,  y: 25, color: "#10b981" },
+            { label: "SERVER ROOM",    x: 52, y: 25, color: "#f85149" },
+          ].map(({ label, x, y, color }) => (
+            <div
+              key={label}
+              style={{
+                position: "absolute",
+                left: (x - camera.x) * TILE,
+                top:  (y - camera.y) * TILE + 2,
+                fontSize: 8,
+                fontWeight: 700,
+                fontFamily: "monospace",
+                color: color + "88",
+                letterSpacing: "0.5px",
+                whiteSpace: "nowrap",
+                textShadow: "0 1px 3px rgba(0,0,0,0.8)",
+              }}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+
+        {/* KG OVERLAY — Canvas layer */}
+        {kgVisible && (
+          <canvas
+            ref={kgCanvasRef}
+            onMouseMove={handleKgMouse}
+            onClick={handleKgClick}
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 300,
+              cursor: kgOverlay.hoveredNode ? "pointer" : "default",
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -898,7 +1118,7 @@ function OfficeWorld({ state, dispatch }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // 📊 HUD — heads-up display: agent cards, XP, quests, connection status
 // ═══════════════════════════════════════════════════════════════════════════════
-function HUD({ state, dispatch }) {
+function HUD({ state, dispatch, compact = false, stacked = false }) {
   const { agents, bridgeConnected, selectedAgent, toasts } = state;
   const selected = selectedAgent ? agents[selectedAgent] : null;
 
@@ -912,8 +1132,9 @@ function HUD({ state, dispatch }) {
       display: "flex",
       flexDirection: "column",
       gap: 8,
-      width: 240,
+      width: stacked ? "100%" : compact ? COMPACT_PANEL_WIDTH : FULL_HUD_WIDTH,
       flexShrink: 0,
+      minHeight: 0,
       fontFamily: "'JetBrains Mono', monospace",
       fontSize: 10,
       color: "#c9d1d9",
@@ -971,6 +1192,25 @@ function HUD({ state, dispatch }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ color: agent.color, fontWeight: 700, fontSize: 9, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   Lv{agent.level} {agent.name}
+                </div>
+                <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
+                  {getAgentPlatformIds(agent).map(platformId => {
+                    const platform = PLATFORM_CONFIG[platformId];
+                    return platform ? (
+                      <span
+                        key={`${agent.id}-${platformId}`}
+                        style={{
+                          padding: "1px 4px",
+                          borderRadius: 999,
+                          background: `${platform.color}1f`,
+                          color: platform.color,
+                          fontSize: 7,
+                        }}
+                      >
+                        {platform.icon} {platform.label}
+                      </span>
+                    ) : null;
+                  })}
                 </div>
                 {/* XP bar */}
                 <div style={{ height: 2, background: "#21262d", borderRadius: 1, marginTop: 2, overflow: "hidden" }}>
@@ -1043,6 +1283,26 @@ function HUD({ state, dispatch }) {
             &nbsp;·&nbsp;
             Pos: <span style={{ color: "#58a6ff" }}>{selected.pos.x},{selected.pos.y}</span>
           </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+            {getAgentPlatformIds(selected).map(platformId => {
+              const platform = PLATFORM_CONFIG[platformId];
+              return platform ? (
+                <div
+                  key={`selected-${platformId}`}
+                  style={{
+                    padding: "4px 7px",
+                    borderRadius: 999,
+                    background: `${platform.color}18`,
+                    border: `1px solid ${platform.color}33`,
+                    color: platform.color,
+                    fontSize: 8,
+                  }}
+                >
+                  {platform.icon} {platform.label}
+                </div>
+              ) : null;
+            })}
+          </div>
 
           {/* Focus camera button */}
           <button
@@ -1094,7 +1354,7 @@ function HUD({ state, dispatch }) {
 // 📺 TERMINAL CORRELATION FEED
 // Left panel: real terminal events → game translations
 // ═══════════════════════════════════════════════════════════════════════════════
-function TerminalFeed({ state }) {
+function TerminalFeed({ state, compact = false, stacked = false }) {
   const { termFeed, agents } = state;
   const feedRef = useRef(null);
   useEffect(() => { feedRef.current?.scrollTo({ top: 0, behavior: "smooth" }); }, [termFeed.length]);
@@ -1107,7 +1367,9 @@ function TerminalFeed({ state }) {
 
   return (
     <div style={{
-      width: 260,
+      width: stacked ? "100%" : compact ? COMPACT_PANEL_WIDTH : FULL_FEED_WIDTH,
+      height: stacked ? 320 : "auto",
+      maxHeight: stacked ? 320 : "none",
       background: "#0d1117",
       border: "1px solid #21262d",
       borderRadius: 8,
@@ -1116,6 +1378,7 @@ function TerminalFeed({ state }) {
       overflow: "hidden",
       fontFamily: "'JetBrains Mono', monospace",
       flexShrink: 0,
+      minHeight: 0,
     }}>
       <div style={{ padding: "8px 12px", borderBottom: "1px solid #21262d", fontSize: 10, fontWeight: 700, color: "#8b949e", letterSpacing: "0.5px" }}>
         TERMINAL CORRELATION
@@ -1170,6 +1433,8 @@ function TerminalFeed({ state }) {
 export default function PixelHQUltra() {
   const [state, dispatch] = useReducer(reducer, INIT);
   const timeoutsRef = useRef([]);
+  const viewport = useViewportProfile();
+  const platformBadges = Object.values(PLATFORM_CONFIG);
 
   // ── On mount: reveal tiles around initial camera, connect bridge ────────────
   useEffect(() => {
@@ -1313,6 +1578,7 @@ export default function PixelHQUltra() {
       display: "flex",
       flexDirection: "column",
       userSelect: "none",
+      overflowX: "hidden",
     }}>
       <style>{`
         @keyframes pixelBob {
@@ -1342,9 +1608,10 @@ export default function PixelHQUltra() {
       {/* HEADER */}
       <div style={{
         display: "flex",
-        alignItems: "center",
+        alignItems: viewport.compact ? "flex-start" : "center",
         gap: 12,
-        padding: "10px 20px",
+        flexWrap: "wrap",
+        padding: viewport.compact ? "12px 14px" : "10px 20px",
         borderBottom: "1px solid #21262d",
         background: "#0d1117",
         flexShrink: 0,
@@ -1361,7 +1628,35 @@ export default function PixelHQUltra() {
         <div style={{ fontSize: 10, color: "#586069" }}>
           Multi-Agent · A2A Protocol · Terminal Correlation · Evolution Engine
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+        <div style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 6,
+        }}>
+          {platformBadges.map(platform => (
+            <div
+              key={platform.id}
+              style={{
+                padding: "4px 8px",
+                borderRadius: 999,
+                border: `1px solid ${platform.color}33`,
+                background: `${platform.color}12`,
+                color: platform.color,
+                fontSize: 8,
+                fontWeight: 700,
+                letterSpacing: "0.04em",
+              }}
+            >
+              {platform.icon} {platform.label}
+            </div>
+          ))}
+        </div>
+        <div style={{
+          marginLeft: viewport.compact ? 0 : "auto",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 8,
+        }}>
           <button
             onClick={() => {
               // Trigger a manual meeting for demo
@@ -1457,19 +1752,39 @@ export default function PixelHQUltra() {
         </div>
       </div>
 
+      <div style={{ padding: "12px 12px 0" }}>
+        <PlatformMatrix agents={state.agents} compact={viewport.compact} />
+      </div>
+
       {/* MAIN LAYOUT */}
-      <div style={{ display: "flex", gap: 12, padding: 12, flex: 1, overflow: "hidden", alignItems: "flex-start" }}>
+      <div style={{
+        display: "flex",
+        flexDirection: viewport.stacked ? "column" : "row",
+        gap: 12,
+        padding: 12,
+        flex: viewport.stacked ? "0 0 auto" : "1 1 auto",
+        minHeight: 0,
+        overflow: "visible",
+        alignItems: "stretch",
+      }}>
 
         {/* LEFT: Terminal Correlation Feed */}
-        <TerminalFeed state={state} />
+        <TerminalFeed state={state} compact={viewport.compact} stacked={viewport.stacked} />
 
         {/* CENTER: The Office World */}
-        <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
-          <OfficeWorld state={state} dispatch={dispatch} />
+        <div style={{
+          flex: 1,
+          width: "100%",
+          minHeight: 0,
+          display: "flex",
+          justifyContent: "center",
+          overflowX: viewport.stacked ? "auto" : "hidden",
+        }}>
+          <OfficeWorld state={state} dispatch={dispatch} scale={viewport.scale} />
         </div>
 
         {/* RIGHT: HUD */}
-        {state.showHUD && <HUD state={state} dispatch={dispatch} />}
+        {state.showHUD && <HUD state={state} dispatch={dispatch} compact={viewport.compact} stacked={viewport.stacked} />}
 
       </div>
 
@@ -1481,9 +1796,10 @@ export default function PixelHQUltra() {
 
       {/* FOOTER */}
       <div style={{
-        padding: "6px 20px",
+        padding: "8px 20px",
         borderTop: "1px solid #21262d",
         display: "flex",
+        flexWrap: "wrap",
         gap: 16,
         fontSize: 9,
         color: "#484f58",
@@ -1494,6 +1810,7 @@ export default function PixelHQUltra() {
         <span>Particles: {state.particles.length}</span>
         <span>Feed: {state.termFeed.length} events</span>
         <span>Camera: {state.camera.x},{state.camera.y}</span>
+        <span>Platforms: {platformBadges.length}</span>
         <span style={{ marginLeft: "auto" }}>
           A2A · MCP-compatible · Fog-of-War · Evolution Engine · KG: {Object.keys(KG_NODES).length}N/{KG_EDGES.length}E [K]
         </span>
