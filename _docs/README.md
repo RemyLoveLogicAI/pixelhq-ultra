@@ -1,63 +1,90 @@
-# 📚 pixelhq-ultra Documentation
+<details><summary>Directory Metadata (for smart change detection)</summary>
 
-Welcome to the complete documentation for this repository. This documentation is automatically generated and maintained by Woden Docbot.
+```json
+{
+  "doc_type": "directory_index",
+  "directory_path": "_docs",
+  "directory_hash": "d4858e7cb295ab1cc972ecfec5389079079ac5682175d3e0928511b3cbfdc0b0",
+  "file_count": 1,
+  "file_hashes": {
+    "index.html": "2703f6e56c826b46"
+  }
+}
+```
 
-![Health: Healthy](https://img.shields.io/badge/Health-Healthy-green) ![Files Documented: 2](https://img.shields.io/badge/Files_Documented-2-blue) ![Coverage: 100](https://img.shields.io/badge/Coverage-100-green) ![Last Updated: 2026-03-07](https://img.shields.io/badge/Last_Updated-2026--03--07-gray)
+</details>
 
-## 🔗 Quick Links
-
-[📂 src](./src/README.md)
-
-
----
-
-## 📑 Documentation Sections
-
-### [src](./src/README.md)
-
-Documentation source directory containing one JavaScript file (officeData.js). The explicit purpose of the file is not documented in the provided listing; inspect the file for details.
-
-
-This directory (_docs/src) is a small documentation source folder that contains a single JavaScript file: officeData.
-
-![Files: 1](https://img.shields.io/badge/Files-1-blue)
+[Documentation Home](README.md)
 
 ---
 
-## 📊 Documentation Statistics
+# 📁 _docs
 
-- **Files Documented**: 2
-- **Directories**: 2
-- **Coverage**: 100%
-- **Last Updated**: 2026-03-07
+> **Purpose:** Holds the documentation/demo HTML entry page and source assets used to render example documentation pages and UI demos.
+> 
 
----
+![Organization: Hierarchical](https://img.shields.io/badge/Organization-Hierarchical-blue)
 
-## 🧭 How to Navigate
+## 📑 Table of Contents
 
-> ℹ️ **INFO**
-> Each directory has its own README.md with detailed information about that section. Use the breadcrumb navigation at the top of each page to navigate back to parent directories.
 
-### Navigation Features
-
-- **Breadcrumbs** - At the top of each page, showing your current location
-- **Directory READMEs** - Each folder has a comprehensive overview
-- **File Documentation** - Click through to individual file documentation
-- **Search** - Use GitHub's search or your IDE's search functionality
+- [Overview](#overview)
+- [Subdirectories](#subdirectories)
+- [All Files](#all-files)
+- [Dependencies](#dependencies)
+- [Architecture Notes](#architecture-notes)
 
 ---
 
-## 🤖 About Woden DocBot
+## Overview
 
-This documentation is automatically generated and kept up-to-date by Woden DocBot, an AI-powered documentation assistant. DocBot analyzes code on every pull request and updates documentation to reflect changes.
+The _docs directory contains the documentation landing page and the source assets that power demo/example pages. At the root it includes index.html, which acts as the HTML entry for documentation or demo pages. This file is the primary static artifact at this level and is intended to load or reference the supporting source assets located in the subdirectory.
 
-### Features
+The src/ subdirectory contains two source files used by the demo pages: PixelHQUltra.jsx (a JSX-format component intended to provide a UI component or view) and officeData.js (a JavaScript data file used by those pages). Together, index.html and the files inside src/ form a small documentation/demo bundle: index.html is the static entry point, PixelHQUltra.jsx supplies the component code for rendering a demo UI, and officeData.js provides the dataset consumed by that component. This directory's role in the larger system is to provide a self-contained documentation or example page set that demonstrates a UI component and its data in a browser-accessible format.
 
-- **Automatic Updates** - Documentation updates on every PR
-- **Comprehensive Coverage** - Files, functions, classes, and directories
-- **Smart Navigation** - Breadcrumbs, related files, and parent links
-- **AI-Powered** - Uses GPT-5-mini for intelligent documentation generation
+
+### File Organization
+
+Root-level contains the HTML entry (index.html). All source assets for demo pages are grouped under src/ to separate runtime/static entry from component source and data files. This keeps the single HTML entry clean and delegates component and data sources to a dedicated subdirectory.
+
+## 📂 Subdirectories
+
+This directory contains the following subdirectories:
+
+### [📁 src](./src/README.md)
+
+**Purpose:** Contains source assets for documentation demo pages: a JSX component file (PixelHQUltra.jsx) and a JavaScript data file (officeData.js) used by those pages.
+
+![Files: 2](https://img.shields.io/badge/Files-2-blue)
+
+---
+## 📂 All Files
+
+| File | Type |
+| --- | --- |
+| [index.html](./index.html.md) | 🌐 HTML |
+
+## Dependencies
+
+### Internal Dependencies
+
+| Dependency | Usage |
+| --- | --- |
+| [src/PixelHQUltra.jsx](../src/PixelHQUltra.jsx.md) | Provides the demo UI component referenced by the documentation page. |
+| [src/officeData.js](../src/officeData.js.md) | Provides sample data used by the demo component and documentation examples. |
+
+## Architecture Notes
+
+- Separation of concerns: index.html serves as the static entry page, while src/ holds component source and data so documentation assets are modular and easy to update.
+- The JSX component and the data file are kept alongside each other in src/ to simplify development of demo pages that combine UI and sample data.
 
 ---
 
-*Generated by Woden DocBot for pixelhq-ultra*
+## Navigation
+
+**↑ Parent Directory:** [Go up](../README.md)
+**🔗 Related:** [src](./src/README.md)
+
+---
+
+*Generated by Woden Docbot*
