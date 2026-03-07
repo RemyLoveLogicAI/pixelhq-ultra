@@ -50,7 +50,7 @@ No dependencies identified.
 
 ## 📁 Directory
 
-This file is part of the **src** directory. View the [directory index](_docs/src/README.md) to see all files in this module.
+This file is part of the **src** directory. View the [directory index](./README.md) to see all files in this module.
 
 ## Architecture Notes
 
@@ -81,7 +81,7 @@ Import INITIAL_AGENTS and WAYPOINTS to create runtime agent entities. Each INITI
 
 ## Navigation
 
-**↑ Parent Directory:** [Go up](_docs/src/README.md)
+**↑ Parent Directory:** [Go up](./README.md)
 
 ---
 
@@ -328,5 +328,4 @@ Time complexity O(w * h) where w and h are the rectangle's width and height (eac
 - Only perimeter cells are assigned; interior cells (if any) are left unchanged.
 
 ---
-
 

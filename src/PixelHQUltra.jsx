@@ -17,6 +17,35 @@ const a2a      = new A2AProtocol(bus);
 const personas = new PersonalityEngine();
 const OFFICE_MAP = generateOfficeMap();
 const kgOverlay  = new KGOverlay(bus);
+const WORLD_VIEWPORT_PX = VIEWPORT_W * TILE;
+const FULL_FEED_WIDTH = 260;
+const FULL_HUD_WIDTH = 240;
+const COMPACT_PANEL_WIDTH = 220;
+const LAYOUT_HORIZONTAL_PADDING = 24;
+const LAYOUT_COLUMN_GAP = 24;
+const INLINE_SCALE_MIN = 0.78;
+const STACKED_SCALE_MIN = 0.54;
+const STACKED_SCALE_MAX = 0.72;
+const DESKTOP_ROW_BUDGET = WORLD_VIEWPORT_PX + FULL_FEED_WIDTH + FULL_HUD_WIDTH + LAYOUT_HORIZONTAL_PADDING + LAYOUT_COLUMN_GAP;
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function getViewportProfile(width = typeof window === "undefined" ? 1440 : window.innerWidth) {
+  const compact = width < DESKTOP_ROW_BUDGET;
+  const sidePaneWidth = compact ? COMPACT_PANEL_WIDTH * 2 : FULL_FEED_WIDTH + FULL_HUD_WIDTH;
+  const availableWorldWidth = width - LAYOUT_HORIZONTAL_PADDING - LAYOUT_COLUMN_GAP - sidePaneWidth;
+  const stacked = availableWorldWidth < WORLD_VIEWPORT_PX * INLINE_SCALE_MIN;
+  const scale = stacked
+    ? clamp((width - LAYOUT_HORIZONTAL_PADDING) / WORLD_VIEWPORT_PX, STACKED_SCALE_MIN, STACKED_SCALE_MAX)
+    : clamp(availableWorldWidth / WORLD_VIEWPORT_PX, INLINE_SCALE_MIN, 1);
+  return { width, compact, stacked, scale };
+}
+
+function getAgentPlatformIds(agent) {
+  return (agent?.platforms || []).filter((platformId) => typeof platformId === "string" && PLATFORM_CONFIG[platformId]);
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🎮 STATE — reducer + initial state
@@ -624,24 +653,10 @@ function DebateOverlay({ debate, agents, dispatch }) {
 }
 
 function useViewportProfile() {
-  const getProfile = () => {
-    if (typeof window === "undefined") {
-      return { width: 1440, compact: false, stacked: false, scale: 1 };
-    }
-    const width = window.innerWidth;
-    if (width < 760) {
-      return { width, compact: true, stacked: true, scale: Math.max(0.54, Math.min(0.72, (width - 32) / (VIEWPORT_W * TILE))) };
-    }
-    if (width < 1180) {
-      return { width, compact: true, stacked: false, scale: Math.max(0.78, Math.min(0.94, (width - 360) / (VIEWPORT_W * TILE))) };
-    }
-    return { width, compact: false, stacked: false, scale: 1 };
-  };
-
-  const [profile, setProfile] = useState(getProfile);
+  const [profile, setProfile] = useState(() => getViewportProfile());
 
   useEffect(() => {
-    const handleResize = () => setProfile(getProfile());
+    const handleResize = () => setProfile(getViewportProfile());
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -651,7 +666,7 @@ function useViewportProfile() {
 
 function PlatformMatrix({ agents, compact = false }) {
   const platformCards = Object.values(PLATFORM_CONFIG).map((platform) => {
-    const owners = Object.values(agents).filter(agent => (agent.platforms || []).includes(platform.id));
+    const owners = Object.values(agents).filter(agent => getAgentPlatformIds(agent).includes(platform.id));
     const busyCount = owners.filter(agent => agent.state === "working" || agent.state === "meeting").length;
     return {
       ...platform,
@@ -899,21 +914,28 @@ function OfficeWorld({ state, dispatch, scale = 1 }) {
   // ── KG Overlay: canvas ref + toggle state ──────────────────────────────────
   const kgCanvasRef = useRef(null);
   const [kgVisible, setKgVisible] = useState(false);
+  const toggleKgVisible = useCallback(() => {
+    setKgVisible((visible) => {
+      const next = !visible;
+      kgOverlay.visible = next;
+      return next;
+    });
+  }, []);
 
   // Keyboard: K toggles KG overlay
   useEffect(() => {
     const handler = (e) => {
       if (e.key === "k" || e.key === "K") {
-        setKgVisible(v => {
-          const next = !v;
-          kgOverlay.visible = next;
-          return next;
-        });
+        toggleKgVisible();
       }
     };
+    const unsubscribe = bus.on("kg:toggle", toggleKgVisible);
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      unsubscribe();
+    };
+  }, [toggleKgVisible]);
 
   // Canvas render loop for KG overlay
   useEffect(() => {
@@ -1096,7 +1118,7 @@ function OfficeWorld({ state, dispatch, scale = 1 }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // 📊 HUD — heads-up display: agent cards, XP, quests, connection status
 // ═══════════════════════════════════════════════════════════════════════════════
-function HUD({ state, dispatch, compact = false }) {
+function HUD({ state, dispatch, compact = false, stacked = false }) {
   const { agents, bridgeConnected, selectedAgent, toasts } = state;
   const selected = selectedAgent ? agents[selectedAgent] : null;
 
@@ -1110,8 +1132,9 @@ function HUD({ state, dispatch, compact = false }) {
       display: "flex",
       flexDirection: "column",
       gap: 8,
-      width: compact ? "100%" : 240,
+      width: stacked ? "100%" : compact ? COMPACT_PANEL_WIDTH : FULL_HUD_WIDTH,
       flexShrink: 0,
+      minHeight: 0,
       fontFamily: "'JetBrains Mono', monospace",
       fontSize: 10,
       color: "#c9d1d9",
@@ -1171,7 +1194,7 @@ function HUD({ state, dispatch, compact = false }) {
                   Lv{agent.level} {agent.name}
                 </div>
                 <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
-                  {(agent.platforms || []).map(platformId => {
+                  {getAgentPlatformIds(agent).map(platformId => {
                     const platform = PLATFORM_CONFIG[platformId];
                     return platform ? (
                       <span
@@ -1261,7 +1284,7 @@ function HUD({ state, dispatch, compact = false }) {
             Pos: <span style={{ color: "#58a6ff" }}>{selected.pos.x},{selected.pos.y}</span>
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-            {(selected.platforms || []).map(platformId => {
+            {getAgentPlatformIds(selected).map(platformId => {
               const platform = PLATFORM_CONFIG[platformId];
               return platform ? (
                 <div
@@ -1331,7 +1354,7 @@ function HUD({ state, dispatch, compact = false }) {
 // 📺 TERMINAL CORRELATION FEED
 // Left panel: real terminal events → game translations
 // ═══════════════════════════════════════════════════════════════════════════════
-function TerminalFeed({ state, compact = false }) {
+function TerminalFeed({ state, compact = false, stacked = false }) {
   const { termFeed, agents } = state;
   const feedRef = useRef(null);
   useEffect(() => { feedRef.current?.scrollTo({ top: 0, behavior: "smooth" }); }, [termFeed.length]);
@@ -1344,7 +1367,9 @@ function TerminalFeed({ state, compact = false }) {
 
   return (
     <div style={{
-      width: compact ? "100%" : 260,
+      width: stacked ? "100%" : compact ? COMPACT_PANEL_WIDTH : FULL_FEED_WIDTH,
+      height: stacked ? 320 : "auto",
+      maxHeight: stacked ? 320 : "none",
       background: "#0d1117",
       border: "1px solid #21262d",
       borderRadius: 8,
@@ -1353,6 +1378,7 @@ function TerminalFeed({ state, compact = false }) {
       overflow: "hidden",
       fontFamily: "'JetBrains Mono', monospace",
       flexShrink: 0,
+      minHeight: 0,
     }}>
       <div style={{ padding: "8px 12px", borderBottom: "1px solid #21262d", fontSize: 10, fontWeight: 700, color: "#8b949e", letterSpacing: "0.5px" }}>
         TERMINAL CORRELATION
@@ -1736,18 +1762,20 @@ export default function PixelHQUltra() {
         flexDirection: viewport.stacked ? "column" : "row",
         gap: 12,
         padding: 12,
-        flex: 1,
-        overflow: viewport.stacked ? "visible" : "hidden",
-        alignItems: "flex-start",
+        flex: viewport.stacked ? "0 0 auto" : "1 1 auto",
+        minHeight: 0,
+        overflow: "visible",
+        alignItems: "stretch",
       }}>
 
         {/* LEFT: Terminal Correlation Feed */}
-        <TerminalFeed state={state} compact={viewport.compact} />
+        <TerminalFeed state={state} compact={viewport.compact} stacked={viewport.stacked} />
 
         {/* CENTER: The Office World */}
         <div style={{
           flex: 1,
           width: "100%",
+          minHeight: 0,
           display: "flex",
           justifyContent: "center",
           overflowX: viewport.stacked ? "auto" : "hidden",
@@ -1756,7 +1784,7 @@ export default function PixelHQUltra() {
         </div>
 
         {/* RIGHT: HUD */}
-        {state.showHUD && <HUD state={state} dispatch={dispatch} compact={viewport.compact} />}
+        {state.showHUD && <HUD state={state} dispatch={dispatch} compact={viewport.compact} stacked={viewport.stacked} />}
 
       </div>
 

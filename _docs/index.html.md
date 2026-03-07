@@ -50,7 +50,7 @@ No dependencies identified.
 
 ## 📁 Directory
 
-This file is part of the **_docs** directory. View the [directory index](_docs/README.md) to see all files in this module.
+This file is part of the **_docs** directory. View the [directory index](README.md) to see all files in this module.
 
 ## Architecture Notes
 
@@ -77,7 +77,7 @@ Start a development server that serves project files and supports ES modules. Th
 
 ## Navigation
 
-**↑ Parent Directory:** [Go up](_docs/README.md)
+**↑ Parent Directory:** [Go up](README.md)
 
 ---
 

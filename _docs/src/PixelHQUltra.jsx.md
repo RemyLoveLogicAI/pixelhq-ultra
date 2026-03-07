@@ -18,7 +18,7 @@
 
 </details>
 
-[Documentation Home](../README.md) > [src](./README.md) > **PixelHQUltra.mdx**
+[Documentation Home](../README.md) > [src](./README.md) > **PixelHQUltra.jsx**
 
 ---
 
@@ -66,7 +66,7 @@ The module is event-driven: on mount it creates and connects a TerminalBridge, s
 
 ## 📁 Directory
 
-This file is part of the **src** directory. View the [directory index](_docs/src/README.md) to see all files in this module.
+This file is part of the **src** directory. View the [directory index](./README.md) to see all files in this module.
 
 ## Architecture Notes
 
@@ -100,7 +100,7 @@ The Minimap renders an on-screen canvas. On click it computes tile coordinates f
 
 ## Navigation
 
-**↑ Parent Directory:** [Go up](_docs/src/README.md)
+**↑ Parent Directory:** [Go up](./README.md)
 
 ---
 
@@ -190,10 +190,8 @@ This function inspects action.type and produces a new state object without mutat
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `state` | `Object` | ✅ | Current application state object that will be read to produce the next state.
-<br>**Constraints:** Expected to contain keys referenced by the reducer such as agents, camera, revealed, particles, termFeed, meeting, debate, toasts, showHUD, bridgeConnected, selectedAgent, Should be an immutable-like object (the reducer treats it as read-only and returns copies rather than mutating it) |
-| `action` | `Object` | ✅ | Action object describing the state update; must include a 'type' string and may include additional properties depending on type.
-<br>**Constraints:** Must have a 'type' string property matching one of the handled cases: AGENT_MOVE, AGENT_STATE, ADD_BUBBLE, EXPIRE_BUBBLES, TERM_FEED, PARTICLE_ADD, PARTICLE_TICK, MEETING_START, MEETING_STATEMENT, MEETING_END, DEBATE_START, DEBATE_ROUND, DEBATE_END, XP_GAIN, STAT_INC, TOAST, TOAST_EXPIRE, BRIDGE_STATUS, SELECT_AGENT, CAMERA_FOCUS, CAMERA_PAN, TOGGLE_HUD, Action payload must provide expected properties for each type (e.g., agentId and pos for AGENT_MOVE) |
+| `state` | `Object` | ✅ | Current application state object that will be read to produce the next state. <br>**Constraints:** Expected to contain keys referenced by the reducer such as agents, camera, revealed, particles, termFeed, meeting, debate, toasts, showHUD, bridgeConnected, and selectedAgent. Should be treated as immutable input because the reducer returns copies rather than mutating it. |
+| `action` | `Object` | ✅ | Action object describing the state update; must include a `type` string and may include additional properties depending on type. <br>**Constraints:** Must have a `type` matching one of the handled reducer cases such as `AGENT_MOVE`, `TERM_FEED`, `MEETING_START`, `DEBATE_END`, or `TOGGLE_HUD`. Action payloads must include the fields required by the matching case, such as `agentId` and `pos` for `AGENT_MOVE`. |
 
 ### Returns
 
@@ -975,5 +973,4 @@ Unknown (implementation not visible, cannot determine time or space complexity)
 - The file extension .jsx indicates this is a React component or JSX-capable JavaScript function.
 
 ---
-
 

@@ -21,7 +21,7 @@
 # 📁 src
 
 > **Purpose:** Documentation source directory containing one JavaScript file (officeData.js). The explicit purpose of the file is not documented in the provided listing; inspect the file for details.
-> 
+>
 
 ![Organization: Flat](https://img.shields.io/badge/Organization-Flat-blue)
 
