@@ -900,20 +900,22 @@ function OfficeWorld({ state, dispatch, scale = 1 }) {
   const kgCanvasRef = useRef(null);
   const [kgVisible, setKgVisible] = useState(false);
 
+  const handleKgToggle = useCallback(() => {
+    setKgVisible(v => {
+      const next = !v;
+      kgOverlay.visible = next;
+      return next;
+    });
+  }, []);
+
   // Keyboard: K toggles KG overlay
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === "k" || e.key === "K") {
-        setKgVisible(v => {
-          const next = !v;
-          kgOverlay.visible = next;
-          return next;
-        });
-      }
+      if (e.key === "k" || e.key === "K") handleKgToggle();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [handleKgToggle]);
 
   // Canvas render loop for KG overlay
   useEffect(() => {
@@ -1650,7 +1652,7 @@ export default function PixelHQUltra() {
             📅 Call Meeting
           </button>
           <button
-            onClick={() => bus.emit("kg:toggle")}
+            onClick={handleKgToggle}
             style={{
               padding: "5px 12px", borderRadius: 6, border: "1px solid #21262d",
               background: "#161b22", color: "#06B6D4", fontSize: 10, cursor: "pointer",
