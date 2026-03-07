@@ -1,88 +1,62 @@
-<details><summary>Directory Metadata (for smart change detection)</summary>
+# 📚 pixelhq-ultra Documentation
 
-```json
-{
-  "doc_type": "directory_index",
-  "directory_path": "_docs",
-  "directory_hash": "ae542b240e3ca7ae0d8815ab5d0eb30bcdd52c207e150a8e550e6ef1940ffe30",
-  "file_count": 1,
-  "file_hashes": {
-    "index.html": "7f13da2bf3417e80"
-  }
-}
-```
+Welcome to the complete documentation for this repository. This documentation is automatically generated and maintained by Woden Docbot.
 
-</details>
+![Health: Healthy](https://img.shields.io/badge/Health-Healthy-green) ![Files Documented: 2](https://img.shields.io/badge/Files_Documented-2-blue) ![Coverage: 100](https://img.shields.io/badge/Coverage-100-green) ![Last Updated: 2026-03-07](https://img.shields.io/badge/Last_Updated-2026--03--07-gray)
 
-[Documentation Home](README.md)
+## 🔗 Quick Links
+
+[📂 src](./src/README.md)
+
 
 ---
 
-# 📁 _docs
+## 📑 Documentation Sections
 
-> **Purpose:** Holds the generated documentation landing file (index.html) and a small documentation source folder (src) containing a single JavaScript source file used by the docs.
-> 
-
-![Organization: Hierarchical](https://img.shields.io/badge/Organization-Hierarchical-blue)
-
-## 📑 Table of Contents
+### [src](./src/README.md)
+Documentation source directory containing one JavaScript file (officeData.js). The explicit purpose of the file is not documented in the provided listing; inspect the file for details.
 
 
-- [Overview](#overview)
-- [Subdirectories](#subdirectories)
-- [All Files](#all-files)
-- [Dependencies](#dependencies)
-- [Architecture Notes](#architecture-notes)
-
----
-
-## Overview
-
-The _docs directory contains the documentation site entry point and a small source folder. At the root there is a single HTML file, index.html (100 lines), which serves as the documentation landing file; the file's explicit purpose text is not documented in the provided listing, so it should be inspected directly to determine its precise role and content. This root-level HTML file is the primary artifact produced for publishing or previewing the documentation.
-
-Beneath the root, the src/ subdirectory is a compact documentation source directory containing one JavaScript file, officeData.js. The provided listing notes that the explicit purpose of officeData.js is not documented in the available metadata and suggests opening the file to determine responsibilities. Together, the root index.html and the src/ source file represent a small pipeline where source data or scripts in src/ are likely used to produce or augment the generated index.html; exact interactions must be confirmed by inspecting officeData.js and index.html directly. This directory therefore functions as the documentation output plus a closely related source folder that supports or generates that output.
-
-
-### File Organization
-
-A simple hierarchical layout: a single generated/served artifact at the root (index.html) and a src/ subdirectory containing the original documentation source (one JavaScript file). This keeps published output separate from source files and makes it straightforward to locate the entry HTML and the source that feeds it.
-
-## 📂 Subdirectories
-
-This directory contains the following subdirectories:
-
-### [📁 src](./src/README.md)
-
-**Purpose:** Documentation source directory containing one JavaScript file (officeData.js). The explicit purpose of officeData.js is not documented in the provided listing and requires inspection.
+This directory (_docs/src) is a small documentation source folder that contains a single JavaScript file: officeData.
 
 ![Files: 1](https://img.shields.io/badge/Files-1-blue)
 
 ---
-## 📂 All Files
 
-| File | Type |
-| --- | --- |
-| [index.html](./index.html.md) | 🌐 HTML |
+## 📊 Documentation Statistics
 
-## Dependencies
-
-### Internal Dependencies
-
-| Dependency | Usage |
-| --- | --- |
-| [src/officeData.js](../src/officeData.js.md) | Referenced as the sole JavaScript source in the src directory; exact usage within index.html or build steps is not documented and requires inspection. |
-
-## Architecture Notes
-
-- Separation of published output (root-level index.html) from source (src/officeData.js) suggests a simple source-to-output relationship, but the exact generation or bundling process is not specified in the provided metadata.
+- **Files Documented**: 2
+- **Directories**: 2
+- **Coverage**: 100%
+- **Last Updated**: 2026-03-07
 
 ---
 
-## Navigation
+## 🧭 How to Navigate
 
-**↑ Parent Directory:** [Go up](../README.md)
-**🔗 Related:** [src](./src/README.md)
+> ℹ️ **INFO**
+> Each directory has its own README.md with detailed information about that section. Use the breadcrumb navigation at the top of each page to navigate back to parent directories.
+
+### Navigation Features
+
+- **Breadcrumbs** - At the top of each page, showing your current location
+- **Directory READMEs** - Each folder has a comprehensive overview
+- **File Documentation** - Click through to individual file documentation
+- **Search** - Use GitHub's search or your IDE's search functionality
 
 ---
 
-*Generated by Woden Docbot*
+## 🤖 About Woden DocBot
+
+This documentation is automatically generated and kept up-to-date by Woden DocBot, an AI-powered documentation assistant. DocBot analyzes code on every pull request and updates documentation to reflect changes.
+
+### Features
+
+- **Automatic Updates** - Documentation updates on every PR
+- **Comprehensive Coverage** - Files, functions, classes, and directories
+- **Smart Navigation** - Breadcrumbs, related files, and parent links
+- **AI-Powered** - Uses GPT-5-mini for intelligent documentation generation
+
+---
+
+*Generated by Woden DocBot for pixelhq-ultra*
