@@ -73,6 +73,10 @@ Start a development server that serves project files and supports ES modules. Th
 - Add link rel=icon, proper CSP headers, and meta tags (theme-color, social preview) as project requirements grow; ensure server sets correct MIME types for .jsx or compiled outputs.
 - If using JSX (indicated by .jsx), ensure the build tool transpiles or serves that file in a way the browser can execute (browsers don't execute raw JSX).
 
+## Functions and Classes
+
+No functions or classes are defined in this file.
+
 ---
 
 ## Navigation

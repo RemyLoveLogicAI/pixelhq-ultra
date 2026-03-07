@@ -2,7 +2,7 @@
 
 Welcome to the complete documentation for this repository. This documentation is automatically generated and maintained by Woden Docbot.
 
-![Health: Healthy](https://img.shields.io/badge/Health-Healthy-green) ![Files Documented: 2](https://img.shields.io/badge/Files_Documented-2-blue) ![Coverage: 100](https://img.shields.io/badge/Coverage-100-green) ![Last Updated: 2026-03-07](https://img.shields.io/badge/Last_Updated-2026--03--07-gray)
+![Health: Healthy](https://img.shields.io/badge/Health-Healthy-green) ![Files Documented: 3](https://img.shields.io/badge/Files_Documented-3-blue) ![Coverage: 100](https://img.shields.io/badge/Coverage-100-green) ![Last Updated: 2026-03-07](https://img.shields.io/badge/Last_Updated-2026--03--07-gray)
 
 ## 🔗 Quick Links
 
@@ -14,19 +14,18 @@ Welcome to the complete documentation for this repository. This documentation is
 ## 📑 Documentation Sections
 
 ### [src](./src/README.md)
+Contains source assets for documentation demo pages: a JSX component file and a JavaScript data file used by those pages.
 
-Documentation source directory containing one JavaScript file (officeData.js). The explicit purpose of the file is not documented in the provided listing; inspect the file for details.
 
+This directory (_docs/src) holds two root-level source files that together support documentation or example pages.
 
-This directory (_docs/src) is a small documentation source folder that contains a single JavaScript file: officeData.
-
-![Files: 1](https://img.shields.io/badge/Files-1-blue)
+![Files: 2](https://img.shields.io/badge/Files-2-blue)
 
 ---
 
 ## 📊 Documentation Statistics
 
-- **Files Documented**: 2
+- **Files Documented**: 3
 - **Directories**: 2
 - **Coverage**: 100%
 - **Last Updated**: 2026-03-07
