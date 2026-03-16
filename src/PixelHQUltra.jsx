@@ -915,12 +915,12 @@ function OfficeWorld({ state, dispatch, scale = 1 }) {
   const kgCanvasRef = useRef(null);
   const [kgVisible, setKgVisible] = useState(false);
   const toggleKgVisible = useCallback(() => {
-    setKgVisible((visible) => {
-      const next = !visible;
-      kgOverlay.visible = next;
-      return next;
-    });
+    setKgVisible((visible) => !visible);
   }, []);
+
+  useEffect(() => {
+    kgOverlay.visible = kgVisible;
+  }, [kgVisible]);
 
   // Keyboard: K toggles KG overlay
   useEffect(() => {

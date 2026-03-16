@@ -5,11 +5,11 @@
 {
   "doc_type": "file_overview",
   "file_path": "src/PixelHQUltra.jsx",
-  "source_hash": "a4b6eb7428b14e4f045e79bda9fd210b469eeadc185f850796430192d1331136",
-  "last_updated": "2026-03-07T08:37:42.340154+00:00",
-  "tokens_used": 43524,
-  "complexity_score": 7,
-  "estimated_review_time_minutes": 30,
+  "source_hash": "3d561c6f41ff80cb0d0199a5d6cfd8bfc3324becc5e5ea704d803e109257881b",
+  "last_updated": "2026-03-07T10:13:56.045896+00:00",
+  "tokens_used": 51229,
+  "complexity_score": 6,
+  "estimated_review_time_minutes": 25,
   "external_dependencies": [
     "react"
   ]
@@ -18,7 +18,7 @@
 
 </details>
 
-[Documentation Home](../README.md) > [src](./README.md) > **PixelHQUltra.jsx**
+[Documentation Home](../README.md) > [src](./README.md) > **PixelHQUltra.mdx**
 
 ---
 
@@ -26,7 +26,7 @@
 
 > **File:** `src/PixelHQUltra.jsx`
 
-![Complexity: High](https://img.shields.io/badge/Complexity-High-red) ![Review Time: 30min](https://img.shields.io/badge/Review_Time-30min-blue)
+![Complexity: Medium](https://img.shields.io/badge/Complexity-Medium-yellow) ![Review Time: 25min](https://img.shields.io/badge/Review_Time-25min-blue)
 
 ## 📑 Table of Contents
 
@@ -42,11 +42,9 @@
 
 ## Overview
 
-This module exports a self-contained React view (default export PixelHQUltra) that composes many smaller function components to present a realtime multi-agent office simulation. At module scope it instantiates singletons shared across the UI (EventBus, A2AProtocol, PersonalityEngine, a generated OFFICE_MAP, and a KGOverlay). Global application state is managed with a single useReducer hook and an INIT state object; the reducer implements discrete action types such as AGENT_MOVE, ADD_BUBBLE, PARTICLE_TICK, MEETING_START, DEBATE_START, XP_GAIN, TOAST, and CAMERA_PAN.
+This module exports a default React component PixelHQUltra that composes a small simulation/game UI. It renders a tiled office map, agent pixel sprites, speech/notification bubbles, flying message particles, a terminal correlation feed, a HUD with agent cards, and transient overlays for meetings, debates, and a knowledge graph. The file creates several module-scoped singletons (EventBus, A2AProtocol, PersonalityEngine, TerminalBridge, KGOverlay) and a static OFFICE_MAP generated from officeData.js.
 
-The UI is a mixture of DOM and canvas layers: tiles, agents, and speech bubbles are DOM elements positioned in world coordinates for easy composition, while high-performance layers (the minimap and the Knowledge Graph overlay) use canvases with cached rendering and requestAnimationFrame loops. Components include PixelCharacter, SpeechBubble, AgentSprite, MessageParticle, MeetingOverlay, DebateOverlay, useViewportProfile, PlatformMatrix, Minimap, OfficeWorld, HUD, TerminalFeed, and the top-level PixelHQUltra which wires them together.
-
-The module is event-driven: on mount it creates and connects a TerminalBridge, subscribes to bus events (TERMINAL_EVENTS.* and custom 'a2a:message'), and maps external events into reducer actions that move agents, spawn particles, add bubbles, update XP, and start meetings/debates. Multiple timers drive bubble expiration, particle animation, and demo sequences; all timers, canvas loops, and bus subscriptions are cleaned up on unmount. State is normalized by agent.id and camera logic, fog-of-war, and XP/leveling behaviors are centralized in the reducer.
+Application state uses a useReducer pattern with an INIT state object. The reducer maintains agents (id->agent map), particles, meeting/debate state, camera, revealed fog-of-war (Set of "x,y" strings), terminal feed, toasts, and UI flags. A mount useEffect wires TerminalBridge and bus events to dispatch actions, starts intervals/timeouts for particle ticks and bubble expiry, and ensures all subscriptions and timers are cleaned up on unmount. Visual components include a DOM-tiled OfficeWorld, an offscreen-cached Minimap canvas, a KG canvas rendered with requestAnimationFrame when visible, and many small presentational components (PixelCharacter, AgentSprite, MessageParticle, MeetingOverlay, DebateOverlay, TerminalFeed, HUD). Performance optimizations include offscreen canvas caching for static tiles and conditional RAF for the KG overlay.
 
 ## Dependencies
 
@@ -54,53 +52,55 @@ The module is event-driven: on mount it creates and connects a TerminalBridge, s
 
 | Module | Usage |
 | --- | --- |
-| `react` | Imports React hooks: useState, useEffect, useCallback, useRef, useReducer. These hooks are used across function components: useReducer for global state in PixelHQUltra, useEffect for lifecycle wiring (bridge connection, timers, canvas render loops), useRef for DOM/canvas refs and timeout ids, and useState for local UI toggles. |
+| `react` | Imports React hooks: useState, useEffect, useCallback, useRef, useReducer which are used throughout the file for component state, lifecycle, memoized callbacks, refs for canvases and timers, and the main reducer pattern in PixelHQUltra. |
 
 ### Internal Dependencies
 
 | Module | Usage |
 | --- | --- |
-| [./engine.js](.././engine.js.md) | Imports EventBus, A2AProtocol, A2A_MSG, PersonalityEngine, TerminalBridge, TERMINAL_EVENTS. Used to instantiate singletons (bus, a2a, personas), to connect TerminalBridge and register event listeners in PixelHQUltra's mount effect, and to map A2A/terminal messages into UI actions. |
-| [./officeData.js](.././officeData.js.md) | Imports TILE, WORLD_W, WORLD_H, VIEWPORT_W, VIEWPORT_H, T, TILE_STYLE, generateOfficeMap, WAYPOINTS, INITIAL_AGENTS, AGENT_ROLES, XP_TABLE, EVOLUTION_MILESTONES, PLATFORM_CONFIG. These provide tile/world geometry, initial agents, waypoints, XP rules, and platform configuration used throughout the UI and reducer. |
-| [./kgOverlay.js](.././kgOverlay.js.md) | Imports KGOverlay and KG_NODES/KG_EDGES. The file instantiates kgOverlay = new KGOverlay(bus) and uses it to render the knowledge graph overlay on a canvas, perform hit tests, and draw legends. |
+| [./engine.js](.././engine.js.md) | Imports EventBus, A2AProtocol, A2A_MSG, PersonalityEngine, TerminalBridge, TERMINAL_EVENTS. The file creates singletons (new EventBus(), new A2AProtocol(bus), new PersonalityEngine()) and constructs a TerminalBridge(bus, personas) to connect to a terminal/bridge. Bus events (TERMINAL_EVENTS.*) are subscribed to and mapped into reducer dispatch actions (agent moves, speech/work events, a2a messages, meeting/XPs). A2AProtocol is used to open debates and send knowledge-share events (a2a.openDebate, a2a.shareKnowledge). |
+| [./officeData.js](.././officeData.js.md) | Imports multiple constants and helpers used by rendering and simulation: TILE, WORLD_W, WORLD_H, VIEWPORT_W, VIEWPORT_H, T, TILE_STYLE, generateOfficeMap, WAYPOINTS, INITIAL_AGENTS, AGENT_ROLES, XP_TABLE, EVOLUTION_MILESTONES, PLATFORM_CONFIG. generateOfficeMap() is invoked once (OFFICE_MAP). Constants drive tile rendering, viewport sizing, initial agent creation (initAgents uses INITIAL_AGENTS), waypoint lookups for movement, XP and evolution logic, and platform cards in the HUD. |
+| [./kgOverlay.js](.././kgOverlay.js.md) | Imports KGOverlay, KG_NODES, KG_EDGES. The file instantiates new KGOverlay(bus) and toggles its visible/render behavior from OfficeWorld. KG_NODES and KG_EDGES are referenced in the footer to display counts. The KGOverlay instance is used for hit-testing, rendering legend, and managing hovered/selected node state in response to mouse events on the KG canvas. |
 
 ## 📁 Directory
 
-This file is part of the **src** directory. View the [directory index](./README.md) to see all files in this module.
+This file is part of the **src** directory. View the [directory index](_docs/src/README.md) to see all files in this module.
 
 ## Architecture Notes
 
-- Event-driven observer pattern with a shared EventBus routing external events into UI state changes.
-- Centralized state with useReducer: normalized agent records keyed by id and explicit action types.
-- Mixed rendering strategy: DOM for composable sprites/bubbles, canvas for cached/minimap and KG overlay.
-- Timers and lifecycle management: many setInterval/setTimeout timers and requestAnimationFrame loops cleaned up on unmount.
+- State is centralized via a useReducer with actions like AGENT_MOVE, PARTICLE_ADD/TICK, MEETING_*/DEBATE_*, XP_GAIN, STAT_INC, TERM_FEED, TOAST, BRIDGE_STATUS, SELECT_AGENT, CAMERA_* and TOGGLE_HUD.
+- An EventBus singleton decouples external inputs (TerminalBridge, A2AProtocol) from UI state; mounted effects subscribe to bus events and dispatch reducer actions.
+- Minimap uses an offscreen canvas to cache static tiles; the KG overlay uses a canvas + RAF loop only while visible to minimize work.
+- The main mount effect registers multiple intervals/timeouts and stores them for cleanup; subscriptions are explicitly unsubscribed on unmount.
+- Agents are stored as an object map (id -> agent) for O(1) lookup; revealed fog-of-war is represented as a Set of 'x,y' strings in state.
 
 ## Usage Examples
 
-### Start a demo meeting from the UI header
+### Simulate a meeting via UI header button
 
-Clicking 'Call Meeting' emits TERMINAL_EVENTS.GAME_MEETING_START on the bus. The mounted handler dispatches MEETING_START, schedules AGENT_MOVE actions to chairs, sets agent states to 'meeting', emits meeting statements (bubbles and XP changes) at intervals, and finally dispatches MEETING_END to close the overlay. MeetingOverlay reads state.meeting to render the transcript and attendees.
+Clicking the 'Call Meeting' header button emits TERMINAL_EVENTS.GAME_MEETING_START on the EventBus with a meeting object (meetingId, organizer, attendees, agenda). The mounted effect subscribed to that event dispatches MEETING_START, moves attendees to meeting waypoints, sequences MEETING_STATEMENT actions to append transcript entries and ADD_BUBBLE actions for speech, and schedules MEETING_END on a timeout. Timers are tracked and cleared on unmount.
 
-### Send an A2A knowledge share (particle + bubble + XP)
+### Send an A2A message → particle → receiver bubble
 
-A2A messages are emitted by a2a.shareKnowledge(...) or other modules; bus.on('a2a:message') spawns a MessageParticle via PARTICLE_ADD and adds a speech bubble for the sender. A particle animation interval dispatches PARTICLE_TICK to advance progress; when complete the particle is removed and follow-up bubbles or XP_GAIN actions may be scheduled.
+When an A2A message arrives the handler dispatches PARTICLE_ADD with {from,to,type} producing a particle with progress=0. A periodic PARTICLE_TICK interval advances progress until arrival; sender and receiver bubbles are shown via ADD_BUBBLE and timeouts. MessageParticle renders along a bezier arc between agents.
 
-### Pan camera by clicking the minimap
+### Open and interact with the Knowledge Graph (KG) overlay
 
-The Minimap renders an on-screen canvas. On click it computes tile coordinates from the event, derives a new camera origin centered on that tile, and dispatches CAMERA_PAN. The reducer clamps camera.x/y to valid ranges and OfficeWorld updates its transform accordingly.
+Toggling KG visibility mounts a KG canvas sized to the viewport and starts an RAF loop that calls kgOverlay.render(ctx, camera). Mouse handlers convert screen to world coordinates and use kgOverlay.hitTest for hover/select interactions. The overlay is managed by the singleton kgOverlay created at module scope.
 
 ## Maintenance Notes
 
-- Performance: many DOM tiles can be expensive; consider batching or virtualization for larger OFFICE_MAPs.
-- Timer safety: timeoutsRef collects setTimeout ids; ensure new timers are tracked and cleared on cleanup to avoid leaks.
-- Robustness: guard against missing agent ids or waypoints when handling external events.
-- Testing: unit-test reducer actions (AGENT_MOVE, XP_GAIN leveling) and integration tests by emitting TERMINAL_EVENTS on a mocked EventBus.
+- If map size grows, consider replacing DOM-tiled rendering with a single canvas for tiles to reduce layout/paint costs.
+- Always push new timeouts/interval IDs into the shared timeoutsRef and clear them on unmount to avoid leaks.
+- When copying reducer state, create a new Set for revealed to avoid mutating shared references; serialize Sets to arrays for persistence/tests.
+- Validate incoming bus events for unknown agent IDs or WAYPOINT keys to avoid runtime errors.
+- Ensure KG overlay RAF is canceled on hide to prevent orphaned loops when toggling rapidly.
 
 ---
 
 ## Navigation
 
-**↑ Parent Directory:** [Go up](./README.md)
+**↑ Parent Directory:** [Go up](_docs/src/README.md)
 
 ---
 
@@ -112,6 +112,239 @@ The Minimap renders an on-screen canvas. On click it computes tile coordinates f
 ## Functions and Classes
 
 
+#### function clamp
+
+![Type: Sync](https://img.shields.io/badge/Type-Sync-green)
+
+### Signature
+
+```javascript
+function clamp(value: number, min: number, max: number): number
+```
+
+### Description
+
+Returns a numeric value constrained to lie between the provided min and max bounds by using Math.max and Math.min.
+
+
+This function evaluates Math.min(max, value) to ensure the value is not greater than max, then applies Math.max(min, ...) to ensure the result is not less than min. The implementation does not perform explicit validation of the relationship between min and max or the types of the arguments; it relies on JavaScript's numeric/coercion behavior and the semantics of Math.min/Math.max.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `value` | `number` | ✅ | The input value to constrain between min and max.
+<br>**Constraints:** No explicit type checking in code; non-number inputs are coerced by Math.min/Math.max and may produce NaN, No enforced relationship between min and max (if min > max, result will be influenced by Math.max/Math.min behavior) |
+| `min` | `number` | ✅ | The lower bound of the allowed range.
+<br>**Constraints:** No explicit validation that min <= max; behavior when min > max follows Math.max/Math.min semantics |
+| `max` | `number` | ✅ | The upper bound of the allowed range.
+<br>**Constraints:** No explicit validation that max >= min; behavior when max < min follows Math.min/Math.max semantics |
+
+### Returns
+
+**Type:** `number`
+
+A number equal to value if it lies between min and max; otherwise the nearest bound (min or max). The result may be NaN if inputs are non-numeric and coerce to NaN.
+
+
+**Possible Values:**
+
+- value (if min <= value <= max)
+- min (if value < min and min <= max, or when min > max depending on coercion)
+- max (if value > max and min <= max)
+- NaN (when inputs are non-numeric in a way that causes Math.min/Math.max to return NaN)
+
+### Usage Examples
+
+#### Clamp a value to the range 0–255 (common for color channel values)
+
+```javascript
+clamp(300, 0, 255) // returns 255
+```
+
+Demonstrates limiting an out-of-range high value down to the max bound.
+
+#### Value already within range
+
+```javascript
+clamp(128, 0, 255) // returns 128
+```
+
+Shows that a value inside the bounds is returned unchanged.
+
+#### min greater than max (no explicit validation)
+
+```javascript
+clamp(10, 20, 5) // returns 20 (behavior follows Math.min/Math.max combination)
+```
+
+Illustrates that the function does not validate min <= max and will produce results determined by Math.min/Math.max.
+
+### Complexity
+
+O(1) time complexity and O(1) space complexity
+
+### Related Functions
+
+- `Math.min` - Called by clamp to limit the value to the upper bound
+- `Math.max` - Called by clamp to apply the lower bound after Math.min
+
+### Notes
+
+- The function is a pure computation with no side effects.
+- There is no explicit validation of argument types or that min <= max; callers should ensure sensible numeric inputs if they want predictable behavior.
+- If any argument coerces to NaN, the result will be NaN because Math.min/Math.max propagate NaN.
+
+---
+
+
+
+#### function getViewportProfile
+
+![Type: Sync](https://img.shields.io/badge/Type-Sync-green)
+
+### Signature
+
+```javascript (jsx)
+function getViewportProfile(width: number = (typeof window === 'undefined' ? 1440 : window.innerWidth)): { width: number, compact: boolean, stacked: boolean, scale: number }
+```
+
+### Description
+
+Compute a viewport profile (width, compact flag, stacked flag, and scale) from a given viewport width (defaults to window.innerWidth or 1440 when window is undefined).
+
+
+This function determines layout-related flags and a scaling factor based on an input width in pixels. It: 1) decides if the layout is 'compact' by comparing width to DESKTOP_ROW_BUDGET; 2) computes sidePaneWidth depending on the compact flag using COMPACT_PANEL_WIDTH, FULL_FEED_WIDTH, and FULL_HUD_WIDTH; 3) computes availableWorldWidth by subtracting horizontal paddings, column gap, and sidePaneWidth from width; 4) sets a 'stacked' boolean when availableWorldWidth is less than WORLD_VIEWPORT_PX * INLINE_SCALE_MIN; 5) computes a 'scale' using the clamp(...) helper: if stacked it clamps (width - LAYOUT_HORIZONTAL_PADDING) / WORLD_VIEWPORT_PX between STACKED_SCALE_MIN and STACKED_SCALE_MAX, otherwise it clamps availableWorldWidth / WORLD_VIEWPORT_PX between INLINE_SCALE_MIN and 1. The function returns an object with the computed values.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `width` = `typeof window === "undefined" ? 1440 : window.innerWidth` | `number` | ❌ | Viewport width in pixels to base layout decisions on. If omitted, defaults to window.innerWidth when window is available, otherwise 1440.
+<br>**Constraints:** Should be a finite numeric pixel width, Behavior assumes non-negative values (used in numeric comparisons and arithmetic) |
+
+### Returns
+
+**Type:** `{ width: number, compact: boolean, stacked: boolean, scale: number }`
+
+An object describing the viewport profile: the input width, a compact layout boolean, a stacked layout boolean, and a numeric scale factor clamped to configured bounds.
+
+
+**Possible Values:**
+
+- { width: (number) the same value passed in or the default }
+- { compact: true | false }
+- { stacked: true | false }
+- { scale: number — if stacked, guaranteed between STACKED_SCALE_MIN and STACKED_SCALE_MAX; otherwise between INLINE_SCALE_MIN and 1 }
+
+### Usage Examples
+
+#### Use when you need layout decisions for the current window
+
+```javascript (jsx)
+getViewportProfile()
+```
+
+Returns profile using window.innerWidth (or 1440 if window is undefined).
+
+#### Use for a specific width (e.g., testing or server-side calculations)
+
+```javascript (jsx)
+getViewportProfile(1024)
+```
+
+Computes compact/stacked flags and scale based on a 1024px wide viewport.
+
+### Complexity
+
+O(1) time and O(1) space — performs a fixed number of arithmetic and boolean operations regardless of input size.
+
+### Related Functions
+
+- `clamp` - Called by this function to constrain the computed scale within configured min/max bounds.
+
+### Notes
+
+- Function relies on several external constants (DESKTOP_ROW_BUDGET, COMPACT_PANEL_WIDTH, FULL_FEED_WIDTH, FULL_HUD_WIDTH, LAYOUT_HORIZONTAL_PADDING, LAYOUT_COLUMN_GAP, WORLD_VIEWPORT_PX, INLINE_SCALE_MIN, STACKED_SCALE_MIN, STACKED_SCALE_MAX) which must be defined in the same module or in scope.
+- Reads global window when no width argument is provided; on server-side (no window) it falls back to a default width of 1440.
+- No validation is performed beyond numeric comparisons — passing non-numeric values may produce NaN results.
+
+---
+
+
+
+#### function getAgentPlatformIds
+
+![Type: Sync](https://img.shields.io/badge/Type-Sync-green)
+
+### Signature
+
+```javascript
+function getAgentPlatformIds(agent: any): string[]
+```
+
+### Description
+
+Return an array of platform IDs from agent.platforms that are strings and have a corresponding truthy entry in the global PLATFORM_CONFIG.
+
+
+This function reads the optional platforms property from the provided agent object using optional chaining (agent?.platforms). It treats the platforms value as an array (falling back to an empty array if undefined or falsy), then filters that array to include only items that are of type string and for which PLATFORM_CONFIG[platformId] evaluates to a truthy value. The function returns the filtered array of platform ID strings. The function does not modify its input or any external state; it only reads agent and the global PLATFORM_CONFIG.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `agent` = `none` | `any` | ✅ | An object that may contain a platforms property (expected to be an array). The function only reads agent.platforms.
+<br>**Constraints:** If present, agent.platforms should be an iterable (typically an array)., Elements of agent.platforms are expected to be strings to be included in the result. |
+
+### Returns
+
+**Type:** `string[]`
+
+An array containing the platform ID strings from agent.platforms that are strings and have a truthy entry in PLATFORM_CONFIG.
+
+
+**Possible Values:**
+
+- [] (empty array) if agent is undefined/null or has no platforms or no matching platforms
+- ['platformA', 'platformB'] etc. — any subset of the input platforms that are strings and present/truthy in PLATFORM_CONFIG
+
+### Usage Examples
+
+#### Agent has platforms array with some valid platform IDs
+
+```javascript
+const agent = { platforms: ['web', 'mobile', 42] }; const validIds = getAgentPlatformIds(agent);
+```
+
+Returns an array of string platform IDs from agent.platforms that also exist in PLATFORM_CONFIG; non-string entries (like 42) are excluded.
+
+#### Agent is null or has no platforms
+
+```javascript
+const validIds = getAgentPlatformIds(null);
+```
+
+Returns an empty array because agent?.platforms is undefined and the fallback empty array is used.
+
+### Complexity
+
+Time complexity: O(n) where n is the length of agent.platforms (each element is checked once). Space complexity: O(k) where k is the number of matched platform IDs returned (plus negligible overhead for the intermediate array).
+
+### Related Functions
+
+- `PLATFORM_CONFIG` - Reads this global configuration object to determine which platform IDs are considered valid (not a function but a required global reference).
+
+### Notes
+
+- Relies on a global PLATFORM_CONFIG being available in the scope where this function runs; if PLATFORM_CONFIG is undefined, lookups will yield undefined and cause all entries to be filtered out.
+- The function uses a strict type check for strings (typeof platformId === 'string') and a truthiness check for PLATFORM_CONFIG[platformId].
+- This function does not mutate the agent object or PLATFORM_CONFIG.
+
+---
+
+
+
 #### function initAgents
 
 ![Type: Sync](https://img.shields.io/badge/Type-Sync-green)
@@ -119,51 +352,52 @@ The Minimap renders an on-screen canvas. On click it computes tile coordinates f
 ### Signature
 
 ```javascript (jsx)
-function initAgents(): Record<string, Object>
+function initAgents(): { [id: string]: { id: any, pos: { x?: any, y?: any, ... }, spawn?: object, [key: string]: any } }
 ```
 
 ### Description
 
-Returns an object that maps each agent's id to a new agent object whose pos property is initialized from that agent's spawn.
+Returns an object mapping each agent's id to a new agent object where the agent's pos property is initialized as a shallow copy of its spawn property.
 
 
-The function reads the global INITIAL_AGENTS array, maps each element to a [id, agentObject] pair, and uses Object.fromEntries to build and return an object keyed by agent id. For each agent a in INITIAL_AGENTS it produces an entry whose key is a.id and whose value is a shallow copy of a with its pos property set to a shallow copy of a.spawn (pos: { ...a.spawn }). The rest of the agent properties are shallow-copied via spread ({ ...a, pos: { ...a.spawn } }).
+The function iterates over the INITIAL_AGENTS array, and for each agent 'a' it creates an entry [a.id, { ...a, pos: { ...a.spawn } }]. It then constructs and returns an object from those entries via Object.fromEntries. Each resulting value is a new object that spreads the original agent properties and sets 'pos' to a shallow copy of 'spawn' (so the pos object is a new object with the same enumerable properties as spawn). The function uses Array.prototype.map and Object.fromEntries; it does not mutate the ORIGINAL agents in INITIAL_AGENTS because spreads create shallow copies at the top level.
 
 ### Returns
 
-**Type:** `Object (Record<string, Object>)`
+**Type:** `{ [id: string]: object }`
 
-An object whose keys are agent ids and whose values are new agent objects created from INITIAL_AGENTS elements. Each agent value is a shallow copy of the original agent object with pos initialized as a shallow copy of spawn.
+An object whose keys are agent ids (a.id) and whose values are agent objects created by spreading the original agent and replacing/setting the pos property to a shallow copy of its spawn property.
 
 
 **Possible Values:**
 
-- An object with one property per element in INITIAL_AGENTS, keyed by that element's id
-- An empty object if INITIAL_AGENTS is an empty array
+- An object with one key per element in INITIAL_AGENTS mapping to the constructed agent object
+- An empty object {} if INITIAL_AGENTS is an empty array or has no entries
 
 ### Usage Examples
 
-#### Initialize agents state from a global INITIAL_AGENTS array
+#### Initialize agents state from a predefined list of agents
 
 ```javascript (jsx)
 const agentsById = initAgents();
 ```
 
-Produces an object mapping agent ids to agent objects with pos set from spawn, suitable for storing in component state or a Redux store.
+Creates an object where each agent is accessible by its id and each agent's pos is initialized from its spawn, suitable for seeding in-memory state like a game or simulation.
 
 ### Complexity
 
-Time complexity O(n) where n = INITIAL_AGENTS.length due to a single map and fromEntries construction; space complexity O(n) for the returned object and shallow copies of agent objects.
+Time: O(n) where n is INITIAL_AGENTS.length due to a single map pass and Object.fromEntries construction. Space: O(n) additional space for the returned object and shallow copies of agent objects and their pos/spawn objects.
 
 ### Related Functions
 
-- `INITIAL_AGENTS` - Global data source read by this function (the function maps over this array)
+- `Object.fromEntries` - Called by this function to convert array of [key, value] pairs into an object
+- `Array.prototype.map` - Used to transform INITIAL_AGENTS into an array of [id, agentObject] entries
 
 ### Notes
 
-- The function performs shallow copies: it spreads the agent object and spread-copies spawn into pos. Nested objects inside agent properties (other than spawn) remain shared references.
-- If multiple agents share the same id value, later entries will overwrite earlier ones in the resulting object (behavior of Object.fromEntries with duplicate keys).
-- The implementation relies on INITIAL_AGENTS being defined and iterable in the containing scope.
+- The copies performed are shallow: top-level agent properties are copied via spread, and pos is a shallow copy of spawn. Nested objects deeper than one level remain shared with the original spawn if present.
+- The function relies on an external variable INITIAL_AGENTS being available in scope; that variable is not defined within this function.
+- If multiple agents share the same id, later entries will overwrite earlier ones in the resulting object (standard object key behavior).
 
 ---
 
@@ -176,141 +410,137 @@ Time complexity O(n) where n = INITIAL_AGENTS.length due to a single map and fro
 ### Signature
 
 ```javascript
-reducer(state: Object, action: Object) => Object
+function reducer(state: Object, action: Object) => Object
 ```
 
 ### Description
 
-A Redux-style reducer that returns a new application state object based on the provided action.type and associated action payload.
+Reducer function that takes the current application state and an action object, and returns a new state based on the action.type handled in the switch statement.
 
 
-This function inspects action.type and produces a new state object without mutating the provided state. It handles a variety of action types that update agents (movement, state changes, bubbles, xp, stats), camera positioning and revealed tiles, UI elements (toasts, HUD), ephemeral systems (particles, terminal feed), meeting and debate flows, and bridge connectivity. For each recognized case it builds new copies of the relevant slices (using object/array spread) and returns an updated root state. Unrecognized action types return the input state unchanged. The reducer uses Date.now() and Math.random() to generate IDs and timestamps for ephemeral items (bubbles, particles, toasts, term feed entries). Camera math clamps to WORLD_W/WORLD_H minus viewport dimensions and reveals tiles around the camera into a Set constructed from state.revealed.
+This function implements a typical Redux-style reducer: it inspects action.type and produces a new state object without mutating the input state. It handles many action types that update agents (movement, state, bubbles, XP, stats), UI elements (camera, HUD, toasts, selection), transient systems (particles, terminal feed), meeting/debate flows, and bridge connection status. For AGENT_MOVE it optionally recenters the camera when the 'boss' moves and marks a set of tiles as revealed around the camera. For ADD_BUBBLE and EXPIRE_BUBBLES it manages per-agent bubble arrays and prunes old entries by timestamp. XP_GAIN increments experience, computes level-ups and evolution milestones using EVOLUTION_MILESTONES. PARTICLE_ADD/PARTICLE_TICK add and advance particles and remove completed ones. Other cases produce straightforward updates by returning shallow copies with updated nested properties.
 
 ### Parameters
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `state` | `Object` | ✅ | Current application state object that will be read to produce the next state. <br>**Constraints:** Expected to contain keys referenced by the reducer such as agents, camera, revealed, particles, termFeed, meeting, debate, toasts, showHUD, bridgeConnected, and selectedAgent. Should be treated as immutable input because the reducer returns copies rather than mutating it. |
-| `action` | `Object` | ✅ | Action object describing the state update; must include a `type` string and may include additional properties depending on type. <br>**Constraints:** Must have a `type` matching one of the handled reducer cases such as `AGENT_MOVE`, `TERM_FEED`, `MEETING_START`, `DEBATE_END`, or `TOGGLE_HUD`. Action payloads must include the fields required by the matching case, such as `agentId` and `pos` for `AGENT_MOVE`. |
+| `state` | `Object` | ✅ | The current application state object; expected to contain keys like agents, camera, revealed, particles, termFeed, meeting, debate, toasts, bridgeConnected, selectedAgent, showHUD, etc.
+<br>**Constraints:** Should be an immutable-like plain object (function returns new objects rather than mutating), Certain properties are expected to exist (e.g., state.agents, state.particles, state.revealed, state.toasts, state.termFeed) for corresponding actions to work without errors |
+| `action` | `Object` | ✅ | Action object with a mandatory 'type' string and additional fields depending on the action.type handled (examples: agentId, pos, text, particle, delta, meeting, debate, amount, stat, id, connected, x, y).
+<br>**Constraints:** action.type must be one of the handled strings (e.g., 'AGENT_MOVE', 'ADD_BUBBLE', 'XP_GAIN', etc.) for meaningful changes, Action must include action-specific fields required by that branch (e.g., AGENT_MOVE requires agentId and pos) |
 
 ### Returns
 
 **Type:** `Object`
 
-A new state object representing the updated application state after applying the action. The original state object is not mutated.
+A new state object representing the updated application state after applying the action. The reducer never returns undefined; unrecognized action.type returns the original state object.
 
 
 **Possible Values:**
 
-- A modified state object reflecting the action (e.g., updated agents, camera, revealed, particles, meeting/debate objects, toasts)
-- The unchanged input state object (returned as-is) when action.type is unrecognized or when required referenced entities are missing (e.g., missing agent for some actions)
+- Original state (when action.type is unrecognized or when early-return conditions apply, e.g., missing agent)
+- New state object with modifications appropriate to the action.type
 
 ### Usage Examples
 
-#### Move an agent (boss) and update camera/revealed tiles
+#### Move an agent and update camera & revealed tiles (boss moves)
 
 ```javascript
-const next = reducer(state, { type: 'AGENT_MOVE', agentId: 'boss', pos: { x: 120, y: 80 } });
+reducer(state, { type: 'AGENT_MOVE', agentId: 'boss', pos: { x: 50, y: 30 } })
 ```
 
-Updates the 'boss' agent position and state to 'walking', recenters the camera (clamped to world bounds), and adds revealed tile keys around the new camera area.
+Updates the boss agent's pos and state to 'walking', recenters camera around the boss, and adds a set of revealed tile coordinates around the new camera position.
 
-#### Add an on-screen speech bubble for an agent
+#### Add a speech bubble for an agent
 
 ```javascript
-const next = reducer(state, { type: 'ADD_BUBBLE', agentId: 'alice', text: 'Hello!', style: 'speech' });
+reducer(state, { type: 'ADD_BUBBLE', agentId: 'alice', text: 'Hello!' })
 ```
 
-Appends a bubble object (with generated id and timestamp) to the agent's bubbles array, keeping up to the last 3 bubbles stored in that agent's bubble list slice.
+Creates a bubble object (with id, timestamp, style and color defaults) and appends it to the agent's bubble list (keeps at most last 3).
 
-#### Expire old particle progress
+#### Advance particles by delta and remove completed
 
 ```javascript
-const next = reducer(state, { type: 'PARTICLE_TICK', delta: 0.05 });
+reducer(state, { type: 'PARTICLE_TICK', delta: 0.05 })
 ```
 
-Increments progress on each particle by delta and filters out particles whose progress reaches or exceeds 1.
+Increments progress for each particle by delta and filters out particles with progress >= 1.
 
 ### Complexity
 
-Time complexity varies by action: many actions are O(1) or O(k) where k is number of touched agents/particles. Notable costs: AGENT_MOVE reveals roughly VIEWPORT_W * VIEWPORT_H tiles (O(VIEWPORT_W * VIEWPORT_H)); EXPIRE_BUBBLES iterates all agents (O(A) where A is number of agents); PARTICLE_TICK maps and filters all particles (O(P)). Space complexity: returns a new state with copies of modified slices; worst-case additional memory proportional to size of modified slices (agents, particles, toasts, etc.).
+Time: O(A + P + VIEWPORT_W*VIEWPORT_H) in typical worst-cases where A is number of agents (EXPIRE_BUBBLES loops agents), P is number of particles (PARTICLE_TICK maps/filters), and AGENT_MOVE may iterate over VIEWPORT_W*VIEWPORT_H area to mark revealed tiles. Space: O(n) additional allocation proportional to changes (creates shallow copies of objects and arrays).
 
 ### Related Functions
 
-- `dispatch (Redux)` - Calls this reducer by dispatching actions; reducer is the pure function used by the store to compute next state
+- `EVOLUTION_MILESTONES` - Read-only lookup used by XP_GAIN branch to determine abilities unlocked at level milestones
 
 ### Notes
 
-- The reducer uses Date.now() and Math.random() to generate IDs and timestamps; while it returns new objects (no mutation of passed-in state), generated IDs and timestamps make results non-deterministic for identical inputs.
-- When required referenced entities are missing (e.g., agent not found), many cases return the original state unchanged.
-- The revealed field is treated as a Set in state; the reducer creates a new Set from state.revealed when updating it.
-- Camera clamping relies on global constants WORLD_W, WORLD_H, VIEWPORT_W, VIEWPORT_H which must be defined in scope where reducer runs.
-- Ensure consumer of this reducer accounts for created object identity changes when slices update.
+- The reducer reads Date.now() and Math.random() to create unique ids and timestamps for bubbles, particles, toasts and terminal feed entries.
+- When an action expects an agent (by agentId) the reducer checks presence and returns original state if agent missing (e.g., ADD_BUBBLE, CAMERA_FOCUS).
+- Camera centering logic clamps to world bounds using WORLD_W, WORLD_H, VIEWPORT_W, VIEWPORT_H globals; these must be defined in the surrounding module scope.
+- AGENT_MOVE reveals tiles by adding coordinate strings to a Set copied from state.revealed; disclosed coordinates are strings formatted as 'x,y'.
+- The reducer uses shallow copies to avoid mutating the incoming state; callers should still treat returned object as the new immutable state.
 
 ---
 
 
 
-#### PixelCharacter
-
-> ⚠️ **WARNING**
-> ⚠️ **Validation Warnings**
-
-- Implementation body missing — many details inferred from signature only.
+#### function PixelCharacter
 
 ![Type: Sync](https://img.shields.io/badge/Type-Sync-green)
 
 ### Signature
 
 ```javascript (jsx)
-function PixelCharacter({ spriteData: any, scale: number = 4, bobbing: boolean = false, walking: boolean = false })
+function PixelCharacter({ spriteData, scale = 4, bobbing = false, walking = false })
 ```
 
 ### Description
 
-Represents a pixel-art character component that renders sprite data with optional scale and animation flags.
+Implementation not visible
 
-
-Only the function signature/header was provided. The implementation (function body) is not present in the input, so detailed behavior, rendering, return values, side effects, and exceptions cannot be determined. The signature suggests a React-style functional component that accepts sprite data and optional rendering flags (scale, bobbing, walking).
+The function implementation body is not present in the provided source snippet (only the function signature is visible). Therefore the internal behavior, algorithm, rendering logic, return value, and any interactions cannot be determined from the provided line.
 
 ### Parameters
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `spriteData` | `any` | ✅ | Sprite data for the character (structure not provided in snippet; likely pixel/frame data or an image reference).
+| `spriteData` | `not specified in signature` | ✅ | Not specified in the visible code. Present as a named property in the single destructured parameter object.
  |
-| `scale` = `4` | `number` | ❌ | Numeric scale factor to enlarge the rendered sprite. Default in signature is 4.
+| `scale` = `4` | `not specified in signature` | ❌ | Not specified in the visible code. Provided with a default value of 4 in the signature.
  |
-| `bobbing` = `false` | `boolean` | ❌ | If true, enables a vertical bobbing animation. Default in signature is false.
+| `bobbing` = `false` | `not specified in signature` | ❌ | Not specified in the visible code. Provided with a default boolean value false in the signature.
  |
-| `walking` = `false` | `boolean` | ❌ | If true, enables walking animation/state. Default in signature is false.
+| `walking` = `false` | `not specified in signature` | ❌ | Not specified in the visible code. Provided with a default boolean value false in the signature.
  |
 
 ### Returns
 
-**Type:** `unknown`
+**Type:** `unknown (implementation not visible)`
 
-Not available in the provided snippet; likely returns a JSX element when used as a React component.
+The return value cannot be determined because the function body is not included in the provided snippet.
 
 
 ### Usage Examples
 
-#### General example of calling the component/function with props
+#### Cannot demonstrate usage because implementation is not visible
 
 ```javascript (jsx)
-PixelCharacter({ spriteData: mySprite, scale: 4, bobbing: true, walking: false })
+PixelCharacter({ spriteData: ..., scale: 4, bobbing: false, walking: false })
 ```
 
-Demonstrates how to call the function with the named parameters shown in the signature; the result and behavior are unspecified because implementation is not visible.
+Only the signature is available; example uses the visible parameter names and defaults but does not guarantee correct usage or return behavior.
 
 ### Complexity
 
-Not analyzed
+Not determinable from visible code
 
 ### Notes
 
-- Only the function signature/header was provided. The implementation (function body) is not present in the input, so detailed behavior, return values, side effects, and exceptions cannot be determined.
-- The signature appears to be a JavaScript/JSX function, likely a React component based on the file extension and naming convention, but this cannot be asserted as functional behavior without the implementation.
+- Only the function signature line was provided; the implementation body is missing.
+- Do not assume rendering, return type (React element or otherwise), or side effects without seeing the function body.
 
 ---
 
@@ -322,7 +552,7 @@ Not analyzed
 
 ### Signature
 
-```javascript (jsx)
+```javascript/jsx
 function SpeechBubble({ bubble, agentColor })
 ```
 
@@ -330,33 +560,37 @@ function SpeechBubble({ bubble, agentColor })
 
 Implementation not visible
 
-Implementation not visible. Only the function signature is present in the provided source; no body or internal logic was provided to analyze.
+Implementation not visible. Only the function signature/declaration line is available, so the internal logic, return values, side effects, and interactions cannot be determined from the provided source.
 
 ### Parameters
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `bubble` = `none visible` | `unknown` | ✅ | Destructured prop named 'bubble' from the parameter object; exact expected shape or type is not visible in the provided code.
-<br>**Constraints:** No constraints visible in the implementation |
-| `agentColor` = `none visible` | `unknown` | ✅ | Destructured prop named 'agentColor' from the parameter object; exact expected type (string, object, etc.) is not visible in the provided code.
-<br>**Constraints:** No constraints visible in the implementation |
+| `bubble` | `unknown` | ❌ | Destructured property from the single props parameter; exact expected shape and usage are not visible in the provided implementation.
+<br>**Constraints:** Not visible in the provided code |
+| `agentColor` | `unknown` | ❌ | Destructured property from the single props parameter; exact expected type and usage are not visible in the provided implementation.
+<br>**Constraints:** Not visible in the provided code |
 
 ### Returns
 
 **Type:** `unknown`
 
-Implementation not visible; no return statements or JSX output are present in the provided excerpt.
+Not visible — no return statement or JSX body available in the provided snippet.
 
+
+**Possible Values:**
+
+- Not determinable from the provided code
 
 ### Usage Examples
 
-#### Typical JSX usage when rendering the component (example only; implementation not visible)
+#### Typical invocation in a React component when passing props
 
-```javascript (jsx)
-<SpeechBubble bubble={someBubbleObject} agentColor="#ff0000" />
+```javascript/jsx
+SpeechBubble({ bubble: someBubbleValue, agentColor: '#ff0000' })
 ```
 
-Illustrative example of how the component might be invoked in JSX given the visible props. The actual rendering behavior is not known because the implementation is missing.
+Example shows how the function would be called with the expected destructured props, but the effect and return are unknown because the implementation is not provided.
 
 ### Complexity
 
@@ -364,8 +598,7 @@ Unknown — implementation not visible, so time and space complexity cannot be d
 
 ### Notes
 
-- Only the function signature (declaration line) was provided. The function body and implementation details are not available in the input.
-- Because the implementation is not visible, this documentation does not assert any behavior, return values, side effects, or exceptions beyond what can be directly observed from the signature.
+- Only the function signature line was provided. The body/implementation is not present in the input, so behavior cannot be documented beyond parameter names.
 
 ---
 
@@ -385,48 +618,44 @@ function AgentSprite({ agent, isSelected, onClick })
 
 Implementation not visible
 
-The function definition is present but its implementation body is not included in the provided source snippet, so the specific behavior, rendering logic, or return value cannot be determined from the available code.
+The body/implementation of this function is not present in the provided source snippet (only the function signature is available). Therefore the actual behavior, return value, internal logic, and side effects cannot be determined from the supplied code.
 
 ### Parameters
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `agent` = `none specified` | `not specified in signature` | ❌ | Destructured prop named 'agent' passed to the function; actual expected shape and usage are not visible in the implementation snippet.
-<br>**Constraints:** No constraints visible in the provided code |
-| `isSelected` = `none specified` | `not specified in signature` | ❌ | Destructured prop named 'isSelected' passed to the function; actual expected type and usage are not visible in the implementation snippet.
-<br>**Constraints:** No constraints visible in the provided code |
-| `onClick` = `none specified` | `not specified in signature` | ❌ | Destructured prop named 'onClick' passed to the function; actual expected type (e.g., function) and usage are not visible in the implementation snippet.
-<br>**Constraints:** No constraints visible in the provided code |
+| `agent` | `unknown` | ✅ | Parameter named 'agent' passed via object destructuring; purpose and expected shape are not visible in the provided snippet.
+ |
+| `isSelected` | `unknown` | ✅ | Parameter named 'isSelected' passed via object destructuring; purpose and expected type are not visible in the provided snippet.
+ |
+| `onClick` | `unknown` | ✅ | Parameter named 'onClick' passed via object destructuring; purpose and expected type are not visible in the provided snippet.
+ |
 
 ### Returns
 
-**Type:** `unknown (implementation not visible)`
+**Type:** `unknown`
 
-The return value cannot be determined because the function body and any return statements are not included in the provided snippet.
+Implementation not visible; return value cannot be determined from the provided snippet.
 
-
-**Possible Values:**
-
-- Unknown — implementation not visible
 
 ### Usage Examples
 
-#### Cannot provide a concrete usage example because implementation is not visible
+#### Example of how to call the function with an object of props (implementation details unknown)
 
 ```javascript (jsx)
-/* Implementation not available; example usage depends on component behavior */
+AgentSprite({ agent: myAgent, isSelected: true, onClick: () => console.log('clicked') })
 ```
 
-The function body is missing, so an accurate code example showing how to call or use the function cannot be produced.
+Demonstrates the call-site pattern expected by the signature: an object with agent, isSelected, and onClick properties. The actual result and behavior are not provided in the snippet.
 
 ### Complexity
 
-Unknown — implementation not visible
+Unknown (implementation not visible)
 
 ### Notes
 
-- Only the function signature line was provided. The body (implementation) is not present in the provided snippet.
-- Any details about rendering, event handling, state usage, or side effects would require the full implementation to document accurately.
+- Only the function signature was provided; the implementation body is missing from the input.
+- Because the implementation is not visible, do not assume return type, side effects, exceptions, or internal calls.
 
 ---
 
@@ -446,33 +675,33 @@ function MessageParticle({ particle, agents })
 
 Implementation not visible
 
-The function's implementation body is not provided in the supplied source snippet (only the function signature is visible). Therefore, specific behavior, algorithm, return values, and internal operations cannot be determined from the available information.
+The function's implementation is not included in the provided source snippet. Only the function signature is visible, so no line-by-line behavior, return values, internal algorithm, or side effects can be determined from the available information.
 
 ### Parameters
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `particle` | `any` | ✅ | Destructured parameter named 'particle' from the single props object passed to the function. Exact expected shape and usage are not visible in the provided snippet.
- |
-| `agents` | `any` | ✅ | Destructured parameter named 'agents' from the single props object passed to the function. Exact expected shape and usage are not visible in the provided snippet.
- |
+| `particle` | `unknown (property of the single destructured parameter object)` | ❌ | Destructured property named 'particle' from the single object parameter; actual expected shape and usage are not visible in the provided snippet.
+<br>**Constraints:** Not visible in the provided code |
+| `agents` | `unknown (property of the single destructured parameter object)` | ❌ | Destructured property named 'agents' from the single object parameter; actual expected shape and usage are not visible in the provided snippet.
+<br>**Constraints:** Not visible in the provided code |
 
 ### Returns
 
 **Type:** `unknown`
 
-Return value cannot be determined because the function body is not present in the provided code fragment.
+Return value(s) cannot be determined because the function body is not provided.
 
 
 ### Usage Examples
 
-#### Basic invocation with a props object (exact behavior unknown due to missing implementation)
+#### Illustrative call using the visible signature (behavior undefined because implementation is missing)
 
 ```javascript (jsx)
 MessageParticle({ particle: someParticle, agents: someAgents })
 ```
 
-Demonstrates how to call the function using an object with particle and agents properties; what the function does with those values is not visible in the provided snippet.
+Example demonstrates how to call the function with the visible destructured parameters. The actual effect, return value, and behavior are not visible in the provided snippet.
 
 ### Complexity
 
@@ -480,8 +709,8 @@ Unknown (implementation not visible)
 
 ### Notes
 
-- Only the function signature (line: function MessageParticle({ particle, agents }) {) was provided. The implementation body is missing, so all behavioral details, side effects, and return information cannot be determined from the supplied source.
-- The file extension .jsx indicates this is a JavaScript/React component or function using JSX; however, without the body, it is not possible to confirm whether it returns JSX, performs rendering, or has other effects.
+- Only the function signature line is available in the provided source. The implementation body is not included, so this documentation cannot describe behavior, return values, side effects, or exceptions.
+- File extension (.jsx) and the signature style indicate this is JavaScript/JSX code, likely a React component or helper function, but that cannot be asserted as behavior without the implementation.
 
 ---
 
@@ -501,44 +730,48 @@ function MeetingOverlay({ meeting, agents, dispatch })
 
 Implementation not visible
 
-The function implementation is not provided in the visible source snippet. Only the function signature is available; therefore the internal behavior, algorithm, return values, and side effects cannot be determined from the given content.
+Implementation not visible. Only the function signature (a JavaScript/JSX function component) is present in the provided source snippet; no body or logic is available to analyze.
 
 ### Parameters
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `meeting` | `unknown` | ❌ | Destructured parameter named 'meeting' from the single props object; actual expected shape and usage are not visible in the provided implementation.
- |
-| `agents` | `unknown` | ❌ | Destructured parameter named 'agents' from the single props object; actual expected shape and usage are not visible in the provided implementation.
- |
-| `dispatch` | `unknown` | ❌ | Destructured parameter named 'dispatch' from the single props object; actual expected type and usage (e.g., a function reference) are not visible in the provided implementation.
- |
+| `meeting` | `unknown (no type annotations in snippet)` | ✅ | Destructured prop named 'meeting' provided to the component; actual expected shape and usage are not visible in the snippet.
+<br>**Constraints:** Not specified in visible code |
+| `agents` | `unknown (no type annotations in snippet)` | ✅ | Destructured prop named 'agents' provided to the component; actual expected shape and usage are not visible in the snippet.
+<br>**Constraints:** Not specified in visible code |
+| `dispatch` | `unknown (no type annotations in snippet)` | ✅ | Destructured prop named 'dispatch' provided to the component; likely a function or dispatcher but its exact behavior is not visible.
+<br>**Constraints:** Not specified in visible code |
 
 ### Returns
 
 **Type:** `unknown`
 
-Return value cannot be determined because the function body is not visible in the provided snippet.
+Implementation not visible; cannot determine what (if anything) this function returns. As a JSX function component it would typically return React elements (JSX), but the body is not provided.
 
+
+**Possible Values:**
+
+- Unknown — body not visible; likely a React element or null/undefined if used as a component
 
 ### Usage Examples
 
-#### Basic invocation with a props object
+#### Basic JSX usage of the component (example only — implementation not visible)
 
 ```javascript (jsx)
-MeetingOverlay({ meeting: myMeeting, agents: myAgents, dispatch: myDispatch })
+<MeetingOverlay meeting={meetingObj} agents={agentsArray} dispatch={dispatchFn} />
 ```
 
-Demonstrates calling the function with an object that matches the destructured parameter names. The effect and return are unknown because implementation is not visible.
+Illustrative example showing how the component might be used in JSX. The actual rendering behavior and side effects are not visible in the provided snippet.
 
 ### Complexity
 
-Unknown (implementation not visible)
+Unknown (implementation not visible) — cannot determine time or space complexity without the function body.
 
 ### Notes
 
-- Only the function signature line was provided. The implementation body is not present, so behavior, side effects, return values, and exceptions cannot be inferred without additional code.
-- The file extension .jsx indicates this is a React/JSX component or function in JavaScript, but whether it is a React component returning JSX cannot be confirmed from the single line.
+- Only the function signature was provided; the function body and implementation details are not available in the input.
+- Because the implementation is not visible, descriptions of behavior, side effects, return values, and exceptions are intentionally left unspecified to avoid hallucination.
 
 ---
 
@@ -558,39 +791,47 @@ function DebateOverlay({ debate, agents, dispatch })
 
 Implementation not visible
 
-The function body/implementation is not present in the provided source excerpt (only the function signature is available). Therefore, the concrete behavior, rendering, logic, return value, and side effects cannot be determined from the provided information.
+Implementation not visible. Only the function signature is available: a JavaScript/JSX function named DebateOverlay that destructures a single props object to extract debate, agents, and dispatch. No implementation body is provided in the visible source, so internal behavior, rendering, or side effects cannot be determined from the given input.
 
 ### Parameters
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `debate` | `unknown` | ✅ | Parameter named 'debate' passed via object destructuring in the function signature. Implementation not visible so purpose/structure unknown.
-<br>**Constraints:** Cannot determine constraints from signature alone |
-| `agents` | `unknown` | ✅ | Parameter named 'agents' passed via object destructuring in the function signature. Implementation not visible so purpose/structure unknown.
-<br>**Constraints:** Cannot determine constraints from signature alone |
-| `dispatch` | `unknown` | ✅ | Parameter named 'dispatch' passed via object destructuring in the function signature. Implementation not visible so purpose/structure unknown.
-<br>**Constraints:** Cannot determine constraints from signature alone |
+| `debate` | `any` | ✅ | Destructured property from the single props object. Actual expected shape and usage not visible in the implementation.
+<br>**Constraints:** Not determinable from visible code |
+| `agents` | `any` | ✅ | Destructured property from the single props object. Actual expected shape and usage not visible in the implementation.
+<br>**Constraints:** Not determinable from visible code |
+| `dispatch` | `any` | ✅ | Destructured property from the single props object, likely a dispatch function or handler, but actual usage is not visible.
+<br>**Constraints:** Not determinable from visible code |
 
 ### Returns
 
 **Type:** `unknown`
 
-Return value cannot be determined because the function implementation is not visible in the provided excerpt.
+Implementation not visible; return value (if any) cannot be determined from the provided source line.
 
 
 **Possible Values:**
 
-- Unknown — implementation not provided
+- unknown
 
 ### Usage Examples
 
-#### Unable to provide concrete usage due to missing implementation
+#### Basic invocation in a React component tree
 
 ```javascript (jsx)
-DebateOverlay({ debate: myDebate, agents: myAgents, dispatch: myDispatch })
+<DebateOverlay debate={debateObj} agents={agentsArray} dispatch={dispatchFn} />
 ```
 
-This example shows how the function would be called using the available signature; actual behavior and return value are unknown because the implementation is not present.
+Example shows how the component might be used in JSX by passing the three props it destructures; actual behavior and rendering are not visible in the provided source.
+
+#### Calling as plain function (if used that way)
+
+```javascript (jsx)
+DebateOverlay({ debate: debateObj, agents: agentsArray, dispatch: dispatchFn })
+```
+
+Illustrates calling the function with an object containing the expected keys; no implementation details are available.
 
 ### Complexity
 
@@ -598,8 +839,8 @@ Unknown (implementation not visible)
 
 ### Notes
 
-- Only the function signature was provided; the body/implementation is not included in the input.
-- All behavioral descriptions, side effects, return values, and exceptions cannot be determined without the full implementation.
+- Only the function signature line was provided. The implementation body is not included in the input, so all behavioral details, return values, side effects, exceptions, and complexity cannot be determined without the rest of the code.
+- Parameter types and shapes should be confirmed from the component's implementation or surrounding code before use.
 
 ---
 
@@ -611,67 +852,65 @@ Unknown (implementation not visible)
 
 ### Signature
 
-```javascript (jsx)
-function useViewportProfile(): { width: number, compact: boolean, stacked: boolean, scale: number }
+```javascript (jsx/react)
+function useViewportProfile(): any
 ```
 
 ### Description
 
-Returns a viewport profile object (width, compact, stacked, scale) based on window.innerWidth and updates it on window resize; returns a default profile when window is undefined (SSR).
+Returns a React state value representing the current viewport profile and keeps it updated on window resize events.
 
 
-This React hook computes a UI profile object derived from the current browser viewport width. It defines an internal getProfile function that: (1) returns a default profile when window is not available (e.g., server-side rendering); (2) reads window.innerWidth and, based on breakpoint thresholds (<760, <1180, >=1180), returns width and three flags: compact (boolean), stacked (boolean), and scale (number). Scale is computed using expressions that clamp a ratio to a min/max via Math.max/Math.min and references external constants VIEWPORT_W and TILE. The hook uses useState to hold the profile and useEffect to register a window 'resize' event listener that recomputes and sets the profile by calling setProfile(getProfile()). The effect cleans up by removing the resize listener on unmount.
+This is a React custom hook that initializes a local state variable profile by calling getViewportProfile(), then registers a window resize event listener which updates that state by calling getViewportProfile() again whenever the browser window is resized. The effect's cleanup removes the resize listener. The hook returns the current profile state.
 
 ### Returns
 
-**Type:** `{ width: number, compact: boolean, stacked: boolean, scale: number }`
+**Type:** `any`
 
-An object describing the current viewport profile: width (current innerWidth or 1440 for SSR), compact (whether compact layout should be used), stacked (whether stacked layout should be used), and scale (a scaling factor clamped to a range).
+The current viewport profile value as produced by getViewportProfile(), stored in React state.
 
 
 **Possible Values:**
 
-- { width: 1440, compact: false, stacked: false, scale: 1 } // returned when window is undefined (SSR default)
-- { width: w (<760), compact: true, stacked: true, scale: clamped number between 0.54 and 0.72 computed as Math.max(0.54, Math.min(0.72, (w - 32) / (VIEWPORT_W * TILE)))) }
-- { width: w (>=760 and <1180), compact: true, stacked: false, scale: clamped number between 0.78 and 0.94 computed as Math.max(0.78, Math.min(0.94, (w - 360) / (VIEWPORT_W * TILE)))) }
-- { width: w (>=1180), compact: false, stacked: false, scale: 1 }
+- Any value returned by getViewportProfile()
 
 ### Side Effects
 
 > ❗ **IMPORTANT**
 > This function has side effects that modify state or perform I/O operations.
 
-- Reads window.innerWidth (accesses global window)
-- Registers a 'resize' event listener on window via window.addEventListener
-- Removes the 'resize' event listener on cleanup via window.removeEventListener
-- Updates React component state by calling setProfile (via useState)
+- Registers a window "resize" event listener via window.addEventListener
+- Removes the previously registered window "resize" event listener on cleanup via window.removeEventListener
+- Updates React component state via setProfile when the resize handler runs
 
 ### Usage Examples
 
-#### Inside a React functional component to adapt UI to viewport size
+#### Use inside a functional React component to adapt UI to viewport profile
 
-```javascript (jsx)
-const profile = useViewportProfile();
-// profile.width, profile.compact, profile.stacked, profile.scale can be used to conditionally render or style components
+```javascript (jsx/react)
+function MyComponent() {
+  const profile = useViewportProfile();
+  return <div>Current profile: {String(profile)}</div>;
+}
 ```
 
-Demonstrates retrieving the current viewport profile within a component; the hook keeps profile updated when the window is resized.
+Demonstrates importing and calling the hook inside a component; the returned profile will update when the window is resized.
 
 ### Complexity
 
-Computing the profile is O(1) time and O(1) space. The hook registers a single event listener; subsequent updates occur on resize events (each update cost O(1)).
+Time: O(1) per call/update (initial call and each resize handler invocation do constant work); Space: O(1) additional space for storing the profile state reference.
 
 ### Related Functions
 
-- `useState` - Used by this hook to store and update the profile state
-- `useEffect` - Used by this hook to register and clean up the window resize event listener
+- `getViewportProfile` - Called by this hook to determine the initial and updated profile values
+- `useState` - React hook used to store the profile state
+- `useEffect` - React hook used to register and clean up the window resize listener
 
 ### Notes
 
-- The function references VIEWPORT_W and TILE constants from outer scope; those must be defined for scale computations to work as intended.
-- Provides a fallback default profile when executed in environments without window (server-side rendering).
-- Scale computation uses clamping via Math.max/Math.min to enforce minimum and maximum scale values for each breakpoint.
-- Because it uses React hooks, this must be called only from React function components or other hooks and obey the Rules of Hooks.
+- This implementation depends on the behavior and return type of getViewportProfile() which is external to this function.
+- The hook adds a global window event listener; ensure components using this hook are mounted in a browser environment where window is available.
+- The hook uses an empty dependency array for useEffect so the listener is added once on mount and removed on unmount.
 
 ---
 
@@ -691,46 +930,50 @@ function PlatformMatrix({ agents, compact = false })
 
 Implementation not visible
 
-The implementation body for this function is not included in the provided source snippet (only the function signature is visible). Therefore, no detailed behavior, algorithm, control flow, return values, or side effects can be determined from the available information.
+The function implementation is not included in the provided source (only the signature line is visible). Because the body is not available, it is not possible to describe the algorithm, return value, or detailed behavior of this function beyond the parameter names and default values present in the signature.
 
 ### Parameters
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `agents` | `unknown (no type annotations in signature)` | ✅ | Parameter named 'agents' present in the function signature; actual expected type and usage are not visible because the implementation is not provided.
-<br>**Constraints:** No constraints visible in the provided code |
-| `compact` = `false` | `boolean (inferred from default value)` | ❌ | Parameter named 'compact' with a default value of false; exact usage inside the function is not visible.
-<br>**Constraints:** No additional constraints visible in the provided code |
+| `agents` | `unknown` | ✅ | Parameter named 'agents' as declared in the function signature. The implementation is not visible, so its expected shape or use cannot be determined.
+ |
+| `compact` = `false` | `boolean` | ❌ | Optional parameter named 'compact' with a default value of false as declared in the signature. The implementation is not visible so its effect is unknown.
+ |
 
 ### Returns
 
-**Type:** `Unknown (implementation not visible)`
+**Type:** `unknown`
 
-The return value cannot be determined because the function body and any return statements are not present in the provided snippet.
+Return value(s) cannot be determined because the function body and any return statements are not visible in the provided source.
 
-
-**Possible Values:**
-
-- Unknown — cannot enumerate possible return values without implementation
 
 ### Usage Examples
 
-#### Example invocation based on visible signature
+#### Basic invocation with agents and default compact flag
 
 ```javascript (jsx)
-PlatformMatrix({ agents: myAgentsArray, compact: true })
+PlatformMatrix({ agents: myAgents })
 ```
 
-Demonstrates how to call the function with the available parameters; actual effect and output depend on the unseen implementation.
+Shows how to call the function with an 'agents' argument while relying on the default compact=false. The effect is unknown because implementation is not visible.
+
+#### Invocation specifying compact true
+
+```javascript (jsx)
+PlatformMatrix({ agents: myAgents, compact: true })
+```
+
+Shows how to call the function with both parameters. The observable behavior is not documented here because the implementation body is not provided.
 
 ### Complexity
 
-Unknown — time and space complexity cannot be determined without the implementation
+Unknown (implementation not available, cannot determine time or space complexity)
 
 ### Notes
 
-- Only the function signature line was provided. The implementation body is missing, so this documentation does not and cannot describe behavior beyond the presence and defaults of parameters.
-- Because this file has a .jsx extension and the signature uses a single object parameter with a default, this is syntactically a JavaScript/React-style function, but no assumptions about component semantics should be made without the implementation.
+- Only the function signature line was provided; the implementation (body) is not available in the input.
+- Do not assume behavior, return types, or side effects beyond what is visible in the signature.
 
 ---
 
@@ -750,33 +993,33 @@ function Minimap({ state, dispatch })
 
 Implementation not visible
 
-The function implementation/body is not present in the provided source excerpt. Only the function declaration is available: a JavaScript/JSX function named Minimap that takes a single destructured parameter object with properties state and dispatch. No internal logic, return statements, side effects, or calls can be inspected from the given input, so detailed behavior cannot be determined from this snippet.
+Implementation not visible. The source provided contains only the function signature; no function body or implementation logic is present in the supplied context, so behavior, algorithm, and internal operations cannot be determined from the given information.
 
 ### Parameters
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `state` | `unknown` | ✅ | Destructured property from the single parameter object; exact expected shape or use is not visible in the provided code.
-<br>**Constraints:** Not available in excerpt |
-| `dispatch` | `unknown` | ✅ | Destructured property from the single parameter object; exact expected type or behavior (e.g., dispatch function) is not visible in the provided code.
-<br>**Constraints:** Not available in excerpt |
+| `state` = `none (destructured parameter)` | `unknown (property of the first parameter object)` | ✅ | Destructured property from the single props object passed to the function; actual structure and meaning are not visible in the provided implementation.
+ |
+| `dispatch` = `none (destructured parameter)` | `unknown (property of the first parameter object)` | ✅ | Destructured property from the single props object passed to the function; actual structure and meaning are not visible in the provided implementation.
+ |
 
 ### Returns
 
 **Type:** `unknown`
 
-Return value cannot be determined because the function body/return statements are not present in the provided excerpt.
+Implementation not visible; no return statements or JSX were provided to determine the return value.
 
 
 ### Usage Examples
 
-#### Basic invocation in JSX/React (example only — actual behavior unknown)
+#### Typical React component usage (inferred from signature only)
 
 ```javascript (jsx)
-<Minimap state={someState} dispatch={dispatchFunction} />
+Minimap({ state, dispatch })
 ```
 
-Demonstrates how the component/function might be used in JSX based on its signature; the internal effects and rendering are not visible in the provided snippet.
+Example shows how the function might be invoked as a component or function with a props object that contains state and dispatch. Exact usage, JSX rendering, and behavior are not visible in the provided implementation.
 
 ### Complexity
 
@@ -784,8 +1027,8 @@ Unknown (implementation not visible)
 
 ### Notes
 
-- Only the function declaration line was provided. The implementation body is not available in the input, so all behavioral, return, and side-effect descriptions are intentionally omitted to avoid speculation.
-- Parameter names are documented exactly as they appear in the signature; types and shapes are unknown from the snippet.
+- Only the function signature was provided; the actual implementation body is missing from the supplied source context.
+- Because the implementation is not visible, parameters, return values, side effects, exceptions, and internal calls cannot be determined and therefore are documented as unknown.
 
 ---
 
@@ -803,54 +1046,66 @@ function OfficeWorld({ state, dispatch, scale = 1 })
 
 ### Description
 
-Implementation not visible
+Represents a React JSX component named OfficeWorld which accepts state, dispatch, and an optional scale prop.
 
-Implementation not visible. Only the function signature is present in the provided source excerpt, so the internal behavior, algorithm, return value, and side effects cannot be determined from the available information.
+
+The function signature for a JSX component named OfficeWorld is visible, but the implementation body is not included in the provided source. Therefore no details about rendering, state usage, effects, returned JSX, or internal logic can be determined from the available line. Based on the signature, it likely returns JSX (JSX.Element) and uses the provided state and dispatch to render or manage UI, with scale adjusting visual sizing.
 
 ### Parameters
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `state` | `unknown` | ✅ | Parameter named state provided via object destructuring; actual expected shape and usage cannot be determined from the visible signature.
+| `state` | `any` | ✅ | An object or value named state passed into the component; exact shape and usage not visible in the provided implementation.
  |
-| `dispatch` | `unknown` | ✅ | Parameter named dispatch provided via object destructuring; actual expected function/structure and usage cannot be determined from the visible signature.
+| `dispatch` | `any` | ✅ | A dispatcher function or callback (commonly used with reducers) passed into the component; exact usage not visible in the provided implementation.
  |
-| `scale` = `1` | `number` | ❌ | Numeric scale parameter with a default value; specific effect and accepted range are not visible in the implementation.
+| `scale` = `1` | `number` | ❌ | A numeric scale value with a default of 1; how it affects rendering is not visible in the provided implementation.
  |
 
 ### Returns
 
 **Type:** `unknown`
 
-Implementation not visible; no return statements or JSX/values are available in the provided excerpt.
+No return statements or JSX are visible in the provided single-line signature; the actual return value (likely JSX.Element if a React component) cannot be determined from the provided content.
 
+
+**Possible Values:**
+
+- JSX.Element (typical for a React component)
+- null
+- undefined
 
 ### Usage Examples
 
-#### Generic call with required properties
+#### Typical invocation as a React component in JSX
 
 ```javascript (jsx)
-OfficeWorld({ state: someState, dispatch: someDispatch })
+<OfficeWorld state={state} dispatch={dispatch} scale={1} />
 ```
 
-Demonstrates calling the function with the required object properties; specific behavior is unknown because implementation is not visible.
+Shows how the component might be used in JSX by passing the known parameters; actual rendering behavior is not visible.
 
-#### Providing an explicit scale
+#### Calling with a custom scale value
 
 ```javascript (jsx)
-OfficeWorld({ state: someState, dispatch: someDispatch, scale: 2 })
+<OfficeWorld state={state} dispatch={dispatch} scale={2} />
 ```
 
-Shows how to pass an explicit scale value instead of using the default; effect of scale is not visible in the provided code.
+Demonstrates supplying a non-default scale prop; effect on output is unknown from provided code.
 
 ### Complexity
 
-Unknown (implementation not visible)
+Unknown time and space complexity because the implementation is not provided.
+
+### Related Functions
+
+- `Unknown` - No information available in the provided line about related functions or modules called by this component.
 
 ### Notes
 
-- Only the function signature line was provided; the function body and implementation details are not included in the input.
-- Do not assume any behavior, side effects, return values, or internal calls beyond what is present in the signature.
+- Only the function signature line was provided. The full implementation body is required to document behavior, return values, side effects, exceptions, called functions, and complexity accurately.
+- Parameter types are annotated as generic (any) because the specific shapes are not visible.
+- The file extension .jsx suggests this is a React component, so the likely return type is JSX.Element, but that cannot be confirmed without the implementation.
 
 ---
 
@@ -862,115 +1117,126 @@ Unknown (implementation not visible)
 
 ### Signature
 
-```javascript (jsx)
-function HUD({ state, dispatch, compact = false })
+```javascript (jsx/react)
+function HUD({ state, dispatch, compact = false, stacked = false })
 ```
 
 ### Description
 
 Implementation not visible
 
-The implementation of this function is not included in the provided source snippet (only the function signature is visible). Therefore, the detailed behavior, returned value(s), internal algorithm, DOM rendering, hooks usage, or any calls it makes cannot be determined from the given information.
+Implementation not provided in the visible source. Only the function signature is available, so the internal behavior, returned JSX or values, and any algorithms cannot be determined from the provided context.
 
 ### Parameters
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `state` | `unknown` | ✅ | Destructured parameter named 'state' from the single props object; actual expected shape and purpose are not visible in the provided code.
- |
-| `dispatch` | `function` | ✅ | Destructured parameter named 'dispatch' from the single props object; likely intended as some dispatcher function, but its contract is not visible in the snippet.
- |
-| `compact` = `false` | `boolean` | ❌ | Destructured boolean prop defaulting to false; intended to toggle a compact mode, but exact effect is not visible.
- |
+| `state` | `any` | ✅ | A prop named state passed into the HUD component; exact shape and usage are not visible in the provided implementation.
+<br>**Constraints:** No constraints visible in the implementation |
+| `dispatch` | `function` | ✅ | A prop named dispatch (likely a function) passed into the HUD component; exact usage is not visible.
+<br>**Constraints:** No constraints visible in the implementation |
+| `compact` = `false` | `boolean` | ❌ | Optional boolean prop with default value false; purpose and effect are not visible in the implementation.
+<br>**Constraints:** Must be a boolean when provided (inferred from default) |
+| `stacked` = `false` | `boolean` | ❌ | Optional boolean prop with default value false; purpose and effect are not visible in the implementation.
+<br>**Constraints:** Must be a boolean when provided (inferred from default) |
 
 ### Returns
 
 **Type:** `unknown`
 
-Cannot determine return value or rendered output because the function body/implementation is not provided in the snippet.
+Return value is not visible because the function body/implementation is not provided in the supplied source. As a React component it would typically return JSX or null, but this cannot be confirmed here.
 
+
+**Possible Values:**
+
+- JSX.Element (typical for React components) - not confirmed
+- null or undefined - not confirmed
 
 ### Usage Examples
 
-#### Calling with minimal props based on visible signature
+#### Rendering the HUD component in a React app
 
-```javascript (jsx)
-HUD({ state: someStateObject, dispatch: someDispatchFunction })
+```javascript (jsx/react)
+<HUD state={someState} dispatch={someDispatch} />
 ```
 
-Demonstrates how to call the function using the visible destructured props; actual behavior of the call is unknown because implementation is not visible.
-
-#### Calling with compact mode enabled
-
-```javascript (jsx)
-HUD({ state: someStateObject, dispatch: someDispatchFunction, compact: true })
-```
-
-Shows passing the optional compact flag (defaults to false). What compact does internally cannot be determined from the provided snippet.
+Example shows how to call the component with the visible props; exact rendering behavior is unknown because implementation is not visible.
 
 ### Complexity
 
-Not determinable from visible source
+Unknown (implementation not visible, so time and space complexity cannot be determined)
 
 ### Notes
 
-- Only the function signature line was provided. The implementation (function body) is not present in the input, so all behavioral documentation is intentionally limited to what can be observed from the signature.
-- Do not assume rendering, hooks usage, side effects, return type, or interactions with other modules without seeing the implementation.
+- Only the function signature was provided. The actual implementation (function body) is missing, so internal behavior, side effects, return values, and exceptions cannot be determined from the supplied input.
+- The file extension and syntax indicate this is a React functional component written in JSX.
 
 ---
 
 
 
-#### function TerminalFeed
+#### TerminalFeed
 
 ![Type: Sync](https://img.shields.io/badge/Type-Sync-green)
 
 ### Signature
 
 ```javascript (jsx)
-function TerminalFeed({ state, compact = false })
+function TerminalFeed({ state, compact = false, stacked = false })
 ```
 
 ### Description
 
-Implementation not visible
+Describe or render a terminal-like feed component based on provided state and display flags.
 
-The function body/implementation is not available in the provided source excerpt (only the function signature was provided). Therefore the actual behavior, return value, algorithm, side effects, and internal calls cannot be determined from the given information.
+
+The implementation of this function is not included in the provided source snippet, so its internal behavior, return value, and side effects cannot be determined from the available information. From the signature we can infer it accepts a state object and two optional boolean flags that likely affect layout or density of the rendered feed.
 
 ### Parameters
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `state` = `none (no default provided in signature)` | `unknown (property of the props object)` | ❌ | A property named 'state' passed via the component props. The specific expected structure and usage are not visible in the provided code.
-<br>**Constraints:** Cannot determine constraints because implementation is not visible |
-| `compact` = `false` | `boolean` | ❌ | A boolean prop that defaults to false according to the signature. Intended use is not visible in the provided code.
-<br>**Constraints:** Should be boolean based on default value, but exact constraints are not visible |
+| `state` | `object` | ✅ | An object representing the terminal feed state (entries, cursor, metadata, etc.). Exact shape is not available from the snippet.
+ |
+| `compact` = `false` | `boolean` | ❌ | When true, renders the feed in a compact/dense layout. Exact behavior is not visible in the provided snippet.
+ |
+| `stacked` = `false` | `boolean` | ❌ | When true, renders feed items stacked vertically in a particular way. Exact behavior is not visible in the provided snippet.
+ |
 
 ### Returns
 
 **Type:** `unknown`
 
-Return value cannot be determined because the function implementation is not present in the provided excerpt.
+Return value is not visible because the function body/implementation is not provided.
 
 
 ### Usage Examples
 
-#### Render as a React component in JSX when you want to include the TerminalFeed UI element (exact behavior unknown)
+#### Basic invocation with only required props
 
 ```javascript (jsx)
-<TerminalFeed state={someState} compact={true} />
+TerminalFeed({ state: someState })
 ```
 
-Example shows how to pass the two props visible in the signature; exact rendering and effects are unknown because the implementation is not provided.
+Demonstrates calling the function with the required 'state' property. Exact behavior is unknown because implementation is not visible.
+
+#### Invocation with optional flags
+
+```javascript (jsx)
+TerminalFeed({ state: someState, compact: true, stacked: false })
+```
+
+Shows how to pass the optional boolean flags; their effect cannot be documented from the snippet.
 
 ### Complexity
 
-Unknown (implementation not visible, cannot determine time or space complexity)
+Not analyzed
 
 ### Notes
 
-- Only the function signature line was provided; full implementation must be supplied to document behavior, returns, side effects, exceptions, and complexity accurately.
-- The file extension .jsx indicates this is a React component or JSX-capable JavaScript function.
+- Only the function signature line was provided. Implementation, return statements, called functions, and side effects are not present in the provided snippet.
+- Because the body is not visible, do not assume any rendering, state mutation, or I/O behavior.
 
 ---
+
 
