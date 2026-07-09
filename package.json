@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "bridge": "node src/bridge.js",
-    "bridge:dev": "node src/bridge.js --port 7890"
+    "bridge:dev": "node src/bridge.js --port 7890",
+    "scout": "node src/scout.mjs",
+    "test": "node --test"
   },
   "dependencies": {
     "react": "^18.3.0",
