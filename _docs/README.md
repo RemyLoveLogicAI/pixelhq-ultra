@@ -1,97 +1,129 @@
-<details><summary>Directory Metadata (for smart change detection)</summary>
+# 📚 pixelhq-ultra Documentation
 
-```json
-{
-  "doc_type": "directory_index",
-  "directory_path": "_docs",
-  "directory_hash": "d4858e7cb295ab1cc972ecfec5389079079ac5682175d3e0928511b3cbfdc0b0",
-  "file_count": 1,
-  "file_hashes": {
-    "index.html": "2703f6e56c826b46"
-  }
-}
+Welcome to the complete documentation for this repository. This documentation is automatically generated and maintained by Woden Docbot.
+
+![Health: Healthy](https://img.shields.io/badge/Health-Healthy-green) ![Files Documented: 6](https://img.shields.io/badge/Files_Documented-6-blue) ![Coverage: 100](https://img.shields.io/badge/Coverage-100-green) ![Last Updated: 2026-07-09](https://img.shields.io/badge/Last_Updated-2026--07--09-gray)
+
+## 🔗 Quick Links
+
+[📂 src](./src/README.md) | [📂 test](./test/README.md)
+[📋 Dependencies](./DEPENDENCIES.md)
+
+
+---
+
+> A small tile-based office simulation UI paired with an application-to-application (A2A) messaging client used for examples and tests.
+
+
+
+## 📖 Overview
+
+pixelhq-ultra combines a compact, React-based tile office simulation with a lightweight A2A messaging client and runtime glue used by documentation and examples. The UI (PixelHQUltra.jsx) renders and simulates a tile map defined in officeData.js. Messaging and connectivity are provided by an A2A bus implementation (a2aBus.mjs) and a scout module (scout.mjs) that exposes an EventBus, argument parsing, and WebSocket integration.
+
+The repository also includes Node-based tests (test/a2aBus.test.mjs) that validate A2A client behavior and integration scenarios. Together the pieces let developers run and inspect a local simulation while exercising the A2A messaging client and its WebSocket-backed connectivity.
+
+
+### 🧩 Key Components
+
+| Component | Purpose | Technologies |
+| --- | --- | --- |
+| **PixelHQUltra.jsx** | React component that composes and renders the tile-based office simulation UI, consuming map and world data from officeData.js. | `React` |
+| **officeData.js** | Self-contained data and map definition for the tile-based office simulation used by the UI. | N/A |
+| **a2aBus.mjs** | Implementation of the application-to-application (A2A) bus client that provides messaging behavior used by the UI and scout runtime. | `Node` |
+| **scout.mjs (EventBus)** | Provides an EventBus abstraction, argument parsing utilities, and ties WebSocket connectivity to the A2A client runtime behavior. | `WebSocket`, `Node` |
+| **test/a2aBus.test.mjs** | Node-based automated tests that validate A2A bus client behavior and integration scenarios. | `Node` |
+
+
+
+
+**Component Architecture:**
+
+```mermaid
+graph TD
+    C0[PixelHQUltra.jsx]
+    C1[officeData.js]
+    C2[a2aBus.mjs]
+    C3[scout.mjs (EventBus)]
+    C4[test/a2aBus.test.mjs]
+    C0 --> C1
+    C1 --> C2
+    C2 --> C3
 ```
 
-</details>
+### 🏗️ Architecture
 
-[Documentation Home](README.md)
+A single-process client composed of a React-based simulation UI and an A2A bus client. An EventBus abstraction mediates messaging; WebSocket provides runtime connectivity. Node-based tests exercise client behavior and integrations.
 
----
+### 💡 Use Cases
 
-# 📁 _docs
-
-> **Purpose:** Holds the browser-facing documentation entry point and supporting example source and tests for the tile-based office simulation and its A2A messaging client.
-> 
-
-![Organization: Hierarchical](https://img.shields.io/badge/Organization-Hierarchical-blue)
-
-## 📑 Table of Contents
+- ✦ Run and demo a small tile-based office simulation that integrates with an A2A messaging client.
+- ✦ Develop and validate A2A bus client behavior and WebSocket connectivity in a Node environment.
+- ✦ Serve as example/documentation code showing how a UI, local world data, and an A2A client can be composed for demos and tests.
 
 
-- [Overview](#overview)
-- [Subdirectories](#subdirectories)
-- [All Files](#all-files)
-- [Dependencies](#dependencies)
-- [Architecture Notes](#architecture-notes)
+
+### 🔧 Technologies
+
+
+**Frameworks:** ![React: ](https://img.shields.io/badge/React--blue)
+![WebSocket: ](https://img.shields.io/badge/WebSocket--blue) ![Node: ](https://img.shields.io/badge/Node--blue)
 
 ---
 
-## Overview
+## 📑 Documentation Sections
 
-This directory provides the primary HTML entry point (index.html) for a browser-based client application used by the documentation examples and demos. The root-level index.html is intended to be opened in a browser to load the example simulation UI and demonstrate how the application pieces behave in a live or static documentation context.
+### [src](./src/README.md)
+Holds source modules for a small tile-based office simulation UI and its application-to-application (A2A) messaging/client glue used by the documentation examples.
 
-Two subdirectories support the examples and validation: src/ contains the source modules that implement a small tile-based office simulation UI and the application-to-application (A2A) messaging/client glue used by the documentation examples, including a React component module referenced at the root of that source tree. test/ contains automated tests that exercise the A2A bus client behavior in a Node environment; the test suite validates messaging and integration scenarios described by the examples. Together, index.html, src/, and test/ provide a cohesive package where index.html is the launch point for browser demos, src/ implements the demo and client logic, and test/ verifies the messaging behavior in CI or local Node runs.
 
-
-### File Organization
-
-Root-level contains the single browser entry point (index.html). Implementation code is grouped under src/ (four root-level modules implementing the UI and A2A client pieces), while automated tests that validate A2A client behavior in Node live under test/. This separation keeps documentation/demo assets (index.html) distinct from source code and test code to make the purpose of each file clear.
-
-## 📂 Subdirectories
-
-This directory contains the following subdirectories:
-
-### [📁 src](./src/README.md)
-
-**Purpose:** Holds source modules for a small tile-based office simulation UI and the application-to-application (A2A) messaging/client glue used by the documentation examples.
+This directory contains four root-level source modules that together implement a small simulation UI and the messaging/connectivity pieces needed for an application-to-application (A2A) bus client.
 
 ![Files: 4](https://img.shields.io/badge/Files-4-blue)
 
----
+### [test](./test/README.md)
+Holds automated tests targeting the A2A bus client behavior in a Node environment to validate messaging and integration scenarios.
 
-### [📁 test](./test/README.md)
 
-**Purpose:** Contains automated tests targeting the A2A bus client behavior in a Node environment to validate messaging and integration scenarios.
+This directory contains test code focused on validating the A2A (application-to-application) bus client behavior when run in Node.
 
 ![Files: 1](https://img.shields.io/badge/Files-1-blue)
 
 ---
-## 📂 All Files
 
-| File | Type |
-| --- | --- |
-| [index.html](./index.html.md) | 🌐 HTML |
+## 📊 Documentation Statistics
 
-## Dependencies
-
-### Internal Dependencies
-
-| Dependency | Usage |
-| --- | --- |
-| `src modules` | Provides the simulation UI and the A2A messaging/client glue that index.html loads for the browser-based demo and that tests exercise in Node. |
-
-## Architecture Notes
-
-- Separation of concerns: one root-level HTML entry point for browser demos, a dedicated src/ for implementation modules (UI + A2A client glue), and a test/ directory for Node-based integration tests.
-- The setup supports both in-browser demonstration (index.html + src) and Node-based behavioral validation (test/), enabling documentation examples to be validated by automated tests.
+- **Files Documented**: 6
+- **Directories**: 3
+- **Coverage**: 100%
+- **Last Updated**: 2026-07-09
 
 ---
 
-## Navigation
+## 🧭 How to Navigate
 
-**↑ Parent Directory:** [Go up](../README.md)
-**🔗 Related:** [src](./src/README.md) • [test](./test/README.md)
+> ℹ️ **INFO**
+> Each directory has its own README.md with detailed information about that section. Use the breadcrumb navigation at the top of each page to navigate back to parent directories.
+
+### Navigation Features
+
+- **Breadcrumbs** - At the top of each page, showing your current location
+- **Directory READMEs** - Each folder has a comprehensive overview
+- **File Documentation** - Click through to individual file documentation
+- **Search** - Use GitHub's search or your IDE's search functionality
 
 ---
 
-*Generated by Woden Docbot*
+## 🤖 About Woden DocBot
+
+This documentation is automatically generated and kept up-to-date by Woden DocBot, an AI-powered documentation assistant. DocBot analyzes code on every pull request and updates documentation to reflect changes.
+
+### Features
+
+- **Automatic Updates** - Documentation updates on every PR
+- **Comprehensive Coverage** - Files, functions, classes, and directories
+- **Smart Navigation** - Breadcrumbs, related files, and parent links
+- **AI-Powered** - Uses Azure GPT models for intelligent documentation generation
+
+---
+
+*Generated by Woden DocBot for pixelhq-ultra*
