@@ -66,8 +66,8 @@ const INIT = {
   debate:      null,   // { debateId, a, b, topic, rounds, turn }
   // Flying message particles
   particles:   [],     // [{ id, from, to, type, text, progress }]
-  // Fog-of-war: set of "x,y" strings seen by camera
-  revealed:    new Set(),
+  // Fog-of-war: map of "x,y" string keys to true, representing tiles seen by camera
+  revealed:    {},
   // Terminal correlation feed
   termFeed:    [],     // [{ id, agentId, raw, translated, eventType, ts }]
   // Toast notifications
@@ -95,10 +95,10 @@ function reducer(state, action) {
           }
         : state.camera;
       // Reveal tiles around new camera position
-      const revealed = new Set(state.revealed);
+      const revealed = { ...state.revealed };
       for (let dy = -2; dy <= VIEWPORT_H + 2; dy++)
         for (let dx = -2; dx <= VIEWPORT_W + 2; dx++)
-          revealed.add(`${camera.x + dx},${camera.y + dy}`);
+          revealed[`${camera.x + dx},${camera.y + dy}`] = true;
       return { ...state, agents, camera, revealed };
     }
 
@@ -200,18 +200,53 @@ function reducer(state, action) {
       let level = agent.level;
       let xpToNext = agent.xpToNext;
       const evolution = [...agent.evolution];
+      let leveledUp = false;
+      let unlockedAbilities = [];
+
       while (xp >= xpToNext) {
         xp -= xpToNext;
         level++;
+        leveledUp = true;
         xpToNext = Math.floor(xpToNext * 1.4);
         const milestone = EVOLUTION_MILESTONES[agent.role]?.[level];
-        if (milestone) evolution.push({ level, ability: milestone, unlockedAt: Date.now() });
+        if (milestone) {
+          evolution.push({ level, ability: milestone, unlockedAt: Date.now() });
+          unlockedAbilities.push(milestone);
+        }
       }
+
+      let nextToasts = state.toasts;
+      let nextBubbles = agent.bubbles || [];
+      if (leveledUp) {
+        // Create level-up toast
+        const newAbilityText = unlockedAbilities.length > 0 ? ` (Unlocked: ${unlockedAbilities.join(", ")})` : "";
+        const toast = {
+          id: `t-lvl-${Date.now()}-${Math.random()}`,
+          text: `🎉 [${agent.name}] leveled up to Lv${level}!${newAbilityText}`,
+          color: "#d97706"
+        };
+        nextToasts = [...state.toasts.slice(-2), toast];
+
+        // Create level-up speech bubble
+        const bubbleText = unlockedAbilities.length > 0 
+          ? `Level UP! Unlocked: ${unlockedAbilities[unlockedAbilities.length - 1]} ⚡`
+          : `Level UP! Reached Lv${level}! ⚡`;
+        const bubble = {
+          id: `bbl-lvl-${Date.now()}-${Math.random().toString(36).slice(2,5)}`,
+          text: bubbleText,
+          style: "shout",
+          color: "#fbbf24",
+          ts: Date.now()
+        };
+        nextBubbles = [...nextBubbles.slice(-2), bubble];
+      }
+
       return {
         ...state,
+        toasts: nextToasts,
         agents: {
           ...state.agents,
-          [action.agentId]: { ...agent, xp, level, xpToNext, evolution },
+          [action.agentId]: { ...agent, xp, level, xpToNext, evolution, bubbles: nextBubbles },
         },
       };
     }
@@ -479,6 +514,7 @@ function MessageParticle({ particle, agents }) {
     [A2A_MSG.WORK_HANDOFF]:   "📦",
     [A2A_MSG.KNOWLEDGE_SHARE]:"💡",
     [A2A_MSG.MEETING_CALL]:   "📅",
+    "skill_active":           "✨",
   };
 
   return (
@@ -911,7 +947,8 @@ function OfficeWorld({ state, dispatch, scale = 1 }) {
   const vw = VIEWPORT_W * TILE;
   const vh = VIEWPORT_H * TILE;
 
-  // ── KG Overlay: canvas ref + toggle state ──────────────────────────────────
+  // ── Map Canvas & KG Overlay ──────────────────────────────────
+  const mapCanvasRef = useRef(null);
   const kgCanvasRef = useRef(null);
   const [kgVisible, setKgVisible] = useState(false);
   const toggleKgVisible = useCallback(() => {
@@ -921,6 +958,45 @@ function OfficeWorld({ state, dispatch, scale = 1 }) {
   useEffect(() => {
     kgOverlay.visible = kgVisible;
   }, [kgVisible]);
+
+  useEffect(() => {
+    const canvas = mapCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) return;
+    if (canvas.width !== WORLD_W * TILE) {
+      canvas.width = WORLD_W * TILE;
+      canvas.height = WORLD_H * TILE;
+    }
+
+    ctx.fillStyle = "#040408";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (let y = 0; y < Math.min(WORLD_H, OFFICE_MAP.length); y++) {
+      for (let x = 0; x < Math.min(WORLD_W, OFFICE_MAP[y].length); x++) {
+        const tileType = OFFICE_MAP[y][x];
+        const style = TILE_STYLE[tileType] || TILE_STYLE[T.FLOOR];
+        const isRevealed = !!revealed[`${x},${y}`];
+
+        ctx.fillStyle = isRevealed ? style.bg : "#040408";
+        ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
+
+        if (style.border && style.border !== "none" && isRevealed) {
+          ctx.strokeStyle = style.border.replace("1px solid ", "");
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x * TILE, y * TILE, TILE, TILE);
+        }
+
+        if (style.label && isRevealed) {
+          ctx.fillStyle = "#fff";
+          ctx.font = `${TILE * 0.45}px sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(style.label, x * TILE + TILE / 2, y * TILE + TILE / 2);
+        }
+      }
+    }
+  }, [revealed]);
 
   // Keyboard: K toggles KG overlay
   useEffect(() => {
@@ -1018,37 +1094,17 @@ function OfficeWorld({ state, dispatch, scale = 1 }) {
           transition: "transform 0.35s cubic-bezier(.4,0,.2,1)",
           willChange: "transform",
         }}>
-          {/* TILES */}
-          {OFFICE_MAP.map((row, y) =>
-            row.map((tileType, x) => {
-              const style = TILE_STYLE[tileType] || TILE_STYLE[T.FLOOR];
-              const isRevealed = revealed.has(`${x},${y}`);
-              return (
-                <div
-                  key={`${x}-${y}`}
-                  style={{
-                    position: "absolute",
-                    left: x * TILE,
-                    top:  y * TILE,
-                    width: TILE, height: TILE,
-                    background: style.bg,
-                    border: style.border,
-                    boxSizing: "border-box",
-                    fontSize: TILE * 0.45,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    lineHeight: 1,
-                    filter: isRevealed ? "none" : "brightness(0.1)",
-                    transition: "filter 0.8s ease",
-                    overflow: "hidden",
-                  }}
-                >
-                  {style.label || ""}
-                </div>
-              );
-            })
-          )}
+          {/* MAP CANVAS */}
+          <canvas
+            ref={mapCanvasRef}
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: WORLD_W * TILE,
+              height: WORLD_H * TILE,
+            }}
+          />
 
           {/* AGENTS */}
           {Object.values(agents).map(agent => (
@@ -1432,6 +1488,8 @@ function TerminalFeed({ state, compact = false, stacked = false }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function PixelHQUltra() {
   const [state, dispatch] = useReducer(reducer, INIT);
+  const stateRef = useRef(state);
+  stateRef.current = state;
   const timeoutsRef = useRef([]);
   const viewport = useViewportProfile();
   const platformBadges = Object.values(PLATFORM_CONFIG);
@@ -1440,10 +1498,10 @@ export default function PixelHQUltra() {
   useEffect(() => {
     // Initial fog reveal around boss office
     const cam = INIT.camera;
-    const revealed = new Set();
+    const revealed = {};
     for (let dy = -2; dy <= VIEWPORT_H + 2; dy++)
       for (let dx = -2; dx <= VIEWPORT_W + 2; dx++)
-        revealed.add(`${cam.x + dx},${cam.y + dy}`);
+        revealed[`${cam.x + dx},${cam.y + dy}`] = true;
     // Hack initial reveal into state via a move event
     dispatch({ type: "AGENT_MOVE", agentId: "boss", pos: WAYPOINTS.bossDesk });
 
@@ -1468,6 +1526,40 @@ export default function PixelHQUltra() {
         dispatch({ type: "ADD_BUBBLE", agentId, text: summary, style: "work" });
         dispatch({ type: "AGENT_STATE", agentId, agentState: "working" });
         dispatch({ type: "STAT_INC", agentId, stat: "commandsRun" });
+        
+        // ── Active Skills / Evolutionary Abilities trigger ───────────────────
+        const currentAgent = stateRef.current.agents[agentId];
+        if (currentAgent && currentAgent.evolution && currentAgent.evolution.length > 0) {
+          // 30% chance to activate an unlocked skill/ability during work
+          if (Math.random() < 0.30) {
+            const randomSkill = currentAgent.evolution[Math.floor(Math.random() * currentAgent.evolution.length)];
+            const skillName = randomSkill.ability;
+            
+            // Shout bubble above head
+            dispatch({
+              type: "ADD_BUBBLE",
+              agentId,
+              text: `✨ [${skillName}] activated!`,
+              style: "shout",
+            });
+            
+            // Trigger self-pointing jumping particle for skill activation
+            dispatch({
+              type: "PARTICLE_ADD",
+              particle: { from: agentId, to: agentId, type: "skill_active" },
+            });
+            
+            // XP Bonus for using skill
+            dispatch({ type: "XP_GAIN", agentId, amount: 15 });
+            
+            dispatch({
+              type: "TOAST",
+              text: `⚡ [${currentAgent.name}] activated skill: ${skillName}! (+15 XP)`,
+              color: "#fbbf24",
+            });
+          }
+        }
+
         dispatch({ type: "XP_GAIN", agentId, amount: XP_TABLE.tool_use });
         dispatch({
           type: "TERM_FEED",
@@ -1577,7 +1669,6 @@ export default function PixelHQUltra() {
       minHeight: "100vh",
       display: "flex",
       flexDirection: "column",
-      userSelect: "none",
       overflowX: "hidden",
     }}>
       <style>{`

@@ -291,7 +291,6 @@ export class TerminalBridge {
   }
 
   _scheduleReconnect() {
-    if (this.mockMode) return;
     setTimeout(() => this.connect(), this.reconnectDelay);
     this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000);
   }
