@@ -4,11 +4,13 @@
 {
   "doc_type": "directory_index",
   "directory_path": "_docs/src",
-  "directory_hash": "cce1ee814bbb70bc1eb20a46fba0d842195d3f64e83b314515aec5c43f005eb7",
-  "file_count": 2,
+  "directory_hash": "8e1526c31785e74f80c837aa7d58b22f9c23748e4fd53f5461e09953abcb04cf",
+  "file_count": 4,
   "file_hashes": {
     "PixelHQUltra.jsx": "33ac2141f0ee9001",
-    "officeData.js": "b4495ccf39dea243"
+    "a2aBus.mjs": "0e58aca63fcdf98d",
+    "officeData.js": "b4495ccf39dea243",
+    "scout.mjs": "c3644dbe75560d05"
   }
 }
 ```
@@ -21,7 +23,7 @@
 
 # 📁 src
 
-> **Purpose:** Contains source assets for documentation demo pages: a JSX component file and a JavaScript data file used by those pages.
+> **Purpose:** Holds source modules for a small tile-based office simulation UI and its application-to-application (A2A) messaging/client glue used by the documentation examples.
 > 
 
 ![Organization: Flat](https://img.shields.io/badge/Organization-Flat-blue)
@@ -31,32 +33,50 @@
 
 - [Overview](#overview)
 - [All Files](#all-files)
+- [Dependencies](#dependencies)
 - [Architecture Notes](#architecture-notes)
 
 ---
 
 ## Overview
 
-This directory (_docs/src) holds two root-level source files that together support documentation or example pages. At the root there is PixelHQUltra.jsx (a JSX-format source file) and officeData.js (a JavaScript data file). The JSX file is intended to provide a UI component or view in JSX format, while the JS file is intended to provide related data used by that component or other demo pages. Both files are short and focused, and the directory is organized to keep component/view code next to its data dependencies.
+This directory contains four root-level source modules that together implement a small simulation UI and the messaging/connectivity pieces needed for an application-to-application (A2A) bus client. At the root level there is a React component module (PixelHQUltra.jsx) that composes the simulation/game UI, a self-contained data and map definition file for the tile-based office simulation (officeData.js), and two modules related to A2A messaging and runtime connectivity: a2aBus.mjs and scout.mjs. The scout.mjs file defines an EventBus class, a parseArgs function, and ties WebSocket connectivity to the A2A bus client; a2aBus.mjs is the companion A2A bus module referenced in the directory description.
 
-There are no subdirectories in this folder. The contents suggest a simple, flat layout where UI (JSX) and its static or example data (JS) are colocated for ease of maintenance. In the larger system, this directory likely serves as a small self-contained source bundle for documentation pages or examples: the JSX file renders or demonstrates a feature and the JS file supplies the data used in that demonstration. Because specific internal functions or exports are not described in the provided metadata, further inspection of the files themselves is required to understand their exact APIs and runtime integration.
+Combined, these files provide the UI, world data, and messaging infrastructure required to run and demonstrate the office simulation. PixelHQUltra.jsx is the UI composition layer that consumes the office map and data from officeData.js to render or simulate the tile-based office. scout.mjs provides the EventBus and parsing utilities and integrates WebSocket connectivity with the A2A client behavior, while a2aBus.mjs contains the A2A bus client implementation that scout.mjs and the rest of the system can use. This directory is focused on the local implementation details of the simulation and its messaging client used by the surrounding documentation or examples, rather than broader application layers.
 
 
 ### File Organization
 
-Files are organized flat at the directory root: one JSX component file (PixelHQUltra.jsx) and one JavaScript data file (officeData.js). This keeps component code and its example/static data colocated for easy reference.
+All source files live at the root of this directory and are organized by role: UI component (PixelHQUltra.jsx), data/map definition (officeData.js), A2A client (a2aBus.mjs), and runtime/event connectivity (scout.mjs). This flat layout keeps closely related example/demo pieces together for easy discovery.
 
 ## 📂 All Files
 
 | File | Type |
 | --- | --- |
 | [PixelHQUltra.jsx](./PixelHQUltra.jsx.md) | ⚛️ React |
+| [a2aBus.mjs](./a2aBus.mjs.md) | 📄 MJS |
 | [officeData.js](./officeData.js.md) | 📜 JavaScript |
+| [scout.mjs](./scout.mjs.md) | 📄 MJS |
+
+## Dependencies
+
+### External Dependencies
+
+| Dependency | Usage |
+| --- | --- |
+| `WebSocket` | Used by scout.mjs to establish connectivity between the local runtime and the A2A bus or remote endpoints. |
+
+### Internal Dependencies
+
+| Dependency | Usage |
+| --- | --- |
+| [officeData.js](../officeData/js.md) | Provides the map and data definitions consumed by PixelHQUltra.jsx for rendering the tile-based office simulation. |
+| [a2aBus.mjs](../a2aBus/mjs.md) | A2A client implementation used by scout.mjs to provide application-to-application messaging functionality. |
 
 ## Architecture Notes
 
-- Flat directory layout keeps a single JSX component and its data file colocated for simple documentation demos.
-- Separation between UI (JSX) and data (JS) suggests a pattern of storing example/static data separately from presentation logic.
+- Separation of concerns: data (officeData.js), UI composition (PixelHQUltra.jsx), messaging client (a2aBus.mjs), and runtime/event glue (scout.mjs) are kept in separate modules to make it clear which file to change for each area.
+- Event-driven integration: scout.mjs provides an EventBus abstraction and ties WebSocket connectivity to the A2A client, enabling loose coupling between messaging and UI components.
 
 ---
 
